@@ -62,12 +62,7 @@ struct HomeView: View {
                 Haptics.tap()
                 onAvatarTap()
             } label: {
-                ZStack {
-                    Circle().fill(Theme.avatarCircle)
-                    FigmaImage(name: "HudProfile")
-                        .clipShape(Circle())
-                }
-                .frame(width: 44, height: 44)
+                AvatarBustView(config: app.progress.avatar, size: 44)
             }
         }
         .padding(.horizontal, 20)
@@ -122,7 +117,7 @@ struct HomeView: View {
         HStack {
             HStack(spacing: 10) {
                 // Level Image (192:43): 68pt hexagon badge.
-                FigmaImage(name: "LevelBadgeBeginner", placeholder: Theme.orange200)
+                levelBadge
                     .frame(width: 68, height: 68)
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -154,6 +149,32 @@ struct HomeView: View {
         }
         .padding(20)
         .background(RoundedRectangle(cornerRadius: 24).fill(Color.white))
+    }
+
+    /// Uses the exported hexagon badge when present; otherwise draws a close
+    /// stand-in so the card never shows an empty block.
+    @ViewBuilder
+    private var levelBadge: some View {
+        if UIImage(named: "LevelBadgeBeginner") != nil {
+            Image("LevelBadgeBeginner")
+                .resizable()
+                .scaledToFit()
+        } else {
+            ZStack {
+                Image(systemName: "hexagon.fill")
+                    .font(.system(size: 58))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Theme.orange300, Theme.orange500],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                Image(systemName: "building.columns.fill")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
     }
 }
 

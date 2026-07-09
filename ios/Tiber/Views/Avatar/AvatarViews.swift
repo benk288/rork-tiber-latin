@@ -389,12 +389,25 @@ struct AvatarBustView: View {
     var size: CGFloat = 44
 
     var body: some View {
-        ZStack {
+        // Design 176:4901: 44pt cream circle with the avatar figure
+        // (59.8x166.3) anchored at (-8.41, 5.24), so only the head shows.
+        let s = size / 44
+        ZStack(alignment: .topLeading) {
             Circle().fill(Theme.avatarCircle)
-            FigmaImage(name: "HudProfile")
-                .clipShape(Circle())
+            if UIImage(named: "HudProfile") != nil {
+                Image("HudProfile")
+                    .resizable()
+                    .frame(width: 59.81 * s, height: 166.35 * s)
+                    .offset(x: -8.41 * s, y: 5.24 * s)
+            } else {
+                Image(systemName: "person.fill")
+                    .font(.system(size: size * 0.5))
+                    .foregroundStyle(Theme.orange400)
+                    .frame(width: size, height: size)
+            }
         }
         .frame(width: size, height: size)
+        .clipShape(Circle())
     }
 }
 

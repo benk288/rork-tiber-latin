@@ -188,8 +188,14 @@ private struct AuthHeader: View {
     var onBack: () -> Void = {}
     var onClose: () -> Void = {}
 
+    /// Falls back to the sign-in artwork when this screen's export is absent,
+    /// so the header never renders as a flat color block.
+    private var resolvedName: String {
+        UIImage(named: illustration) != nil ? illustration : "AuthIllustrationSignIn"
+    }
+
     var body: some View {
-        FigmaImage(name: illustration, placeholder: Theme.orange100)
+        FigmaImage(name: resolvedName, placeholder: Theme.orange100)
             .frame(height: 302)
             .frame(maxWidth: .infinity)
             .clipped()
