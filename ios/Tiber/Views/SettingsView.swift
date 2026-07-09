@@ -11,12 +11,12 @@ struct SettingsView: View {
             List {
                 Section {
                     HStack(spacing: 14) {
-                        CiceroAvatar(size: 52)
+                        AvatarBustView(config: app.progress.avatar, size: 52)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(app.progress.playerName)
                                 .font(app.font(18, weight: .heavy))
                                 .foregroundStyle(Theme.ink)
-                            Text("Pupil of Cicero's Academy")
+                            Text(app.progress.email.isEmpty ? "Citizen of Tiber" : app.progress.email)
                                 .font(app.font(13))
                                 .foregroundStyle(Theme.brown)
                         }
@@ -58,6 +58,16 @@ struct SettingsView: View {
                         SpeechService.shared.speak("Salve! Ego sum Cicero.")
                     } label: {
                         settingLabel(symbol: "play.circle.fill", title: "Test pronunciation", detail: "Hear a sample Latin phrase")
+                    }
+                }
+                .listRowBackground(Theme.cream)
+
+                Section {
+                    Button {
+                        dismiss()
+                        app.signOut()
+                    } label: {
+                        settingLabel(symbol: "rectangle.portrait.and.arrow.right", title: "Sign out", detail: "Return to the sign-in screen")
                     }
                 }
                 .listRowBackground(Theme.cream)

@@ -25,6 +25,22 @@ final class AppState {
         }
     }
 
+    // MARK: - Account
+
+    /// Fake local sign-in: stores the email and derives a display name.
+    func signIn(email: String) {
+        progress.email = email
+        if progress.playerName == "Discipulus",
+           let prefix = email.split(separator: "@").first, !prefix.isEmpty {
+            progress.playerName = String(prefix).capitalized
+        }
+        progress.isSignedIn = true
+    }
+
+    func signOut() {
+        progress.isSignedIn = false
+    }
+
     // MARK: - Derived values
 
     var learnedWords: [LatinWord] {

@@ -1,171 +1,144 @@
 import SwiftUI
 
-/// Story-mode welcome: Cicero greets his newest pupil across a few
-/// beautifully staged pages.
+/// Four-page welcome carousel shown on first launch, mirroring the
+/// "Concierge Tutorial" flow from the Tiber design file.
 struct OnboardingView: View {
     @Environment(AppState.self) private var app
-    @Environment(\.dismiss) private var dismiss
 
-    @State private var page: Int = 0
-    @State private var name: String = ""
+    @State private var page = 0
 
-    private let pages: [(symbol: String, title: String, text: String)] = [
-        ("building.columns.fill", "Salve! Welcome to Rome",
-         "I am Marcus Tullius Cicero - orator, consul, and now... your magister! You have just arrived in the greatest city in the world."),
-        ("basket.fill", "Learn by Playing",
-         "Forget dusty scrolls. We shall learn Latin in the Forum's market stalls, the Basilica's courts, and even the Colosseum's arena!"),
-        ("book.closed.fill", "Collect Every Word",
-         "Each word you master joins your Codex - your personal treasury of Latin. Earn bronze coins, achievement scrolls, and glory!")
+    private let pages: [(title: String, text: String)] = [
+        ("Welcome to Tiber",
+         "Tiber is your gateway to ancient Rome. Learn real Latin through playful lessons set in the Forum, the Basilica and the Colosseum - guided by the great orators themselves."),
+        ("Tiber coins",
+         "Every word you master earns you bronze coins. Spend them on outfits, accessories and rewards for your Roman avatar, and watch your treasury grow lesson after lesson."),
+        ("Tribes",
+         "Join a tribe of fellow learners. Practice together, share your progress and climb the weekly rankings side by side with your friends."),
+        ("Online feature",
+         "Your progress follows you everywhere. Sign in to sync across devices, challenge friends and compete in weekly arena events against learners across the world.")
     ]
 
     var body: some View {
-        ZStack {
-            Theme.skyGradient.ignoresSafeArea()
+        VStack(spacing: 0) {
+            // Illustration
+            ZStack(alignment: .topTrailing) {
+                OnboardingIllustration(page: page)
+                    .id(page)
+                    .transition(.opacity)
 
-            VStack(spacing: 0) {
+                Button {
+                    Haptics.tap()
+                    finish()
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Skip")
+                            .font(.system(size: 15, weight: .semibold))
+                        Image(systemName: "chevron.right.2")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(Theme.gray900)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(Color.white.opacity(0.92)))
+                }
+                .padding(.trailing, 20)
+                .padding(.top, 12)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 340)
+            .clipped()
+
+            // Copy
+            VStack(alignment: .leading, spacing: 14) {
+                Text(pages[page].title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Theme.gray950)
+                Text(pages[page].text)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.gray500)
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .id("copy\(page)")
+            .transition(.opacity)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 28)
+
+            Spacer()
+
+            // Prev / position / Next
+            HStack {
+                Button {
+                    Haptics.tap()
+                    withAnimation(.easeInOut(duration: 0.25)) { page -= 1 }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 13, weight: .bold))
+                        Text("Prev")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundStyle(Theme.orange600)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 13)
+                    .background(Capsule().fill(Theme.orange100))
+                }
+                .disabled(page == 0)
+                .opacity(page == 0 ? 0.4 : 1)
+
                 Spacer()
 
-                illustration
-                    .frame(height: 260)
+                Text("\(page + 1)/\(pages.count)")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.gray400)
 
-                VStack(spacing: 20) {
-                    if page < pages.count {
-                        VStack(spacing: 12) {
-                            Text(pages[page].title)
-                                .font(app.font(28, weight: .heavy))
-                                .foregroundStyle(Theme.ink)
-                                .multilineTextAlignment(.center)
-                            Text(pages[page].text)
-                                .font(app.font(17))
-                                .foregroundStyle(Theme.brown)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .id(page)
-                        .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .opacity))
+                Spacer()
 
-                        HStack(spacing: 8) {
-                            ForEach(0..<pages.count, id: \.self) { i in
-                                Capsule()
-                                    .fill(i == page ? Theme.orange : Theme.sand)
-                                    .frame(width: i == page ? 24 : 8, height: 8)
-                            }
-                        }
-
-                        Button(page == pages.count - 1 ? "One Last Thing" : "Next") {
-                            Haptics.tap()
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
-                                page += 1
-                            }
-                        }
-                        .buttonStyle(AcademyButtonStyle())
+                Button {
+                    Haptics.tap()
+                    if page == pages.count - 1 {
+                        finish()
                     } else {
-                        namePage
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                        withAnimation(.easeInOut(duration: 0.25)) { page += 1 }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("Next")
+                            .font(.system(size: 16, weight: .semibold))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 13)
+                    .background(Capsule().fill(Theme.orange500))
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
+        }
+        .background(Color.white.ignoresSafeArea())
+        .gesture(
+            DragGesture(minimumDistance: 30).onEnded { value in
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    if value.translation.width < 0, page < pages.count - 1 {
+                        page += 1
+                    } else if value.translation.width > 0, page > 0 {
+                        page -= 1
                     }
                 }
-                .padding(24)
-                .frame(maxWidth: .infinity)
-                .background(
-                    UnevenRoundedRectangle(topLeadingRadius: 32, topTrailingRadius: 32)
-                        .fill(Theme.cream)
-                        .ignoresSafeArea(edges: .bottom)
-                )
             }
-        }
+        )
     }
 
-    private var namePage: some View {
-        VStack(spacing: 16) {
-            Text("What shall I call you, pupil?")
-                .font(app.font(26, weight: .heavy))
-                .foregroundStyle(Theme.ink)
-                .multilineTextAlignment(.center)
-
-            TextField("Your name", text: $name)
-                .font(app.font(18, weight: .semibold))
-                .multilineTextAlignment(.center)
-                .padding(.vertical, 14)
-                .background(Theme.parchment)
-                .clipShape(Capsule())
-                .overlay(Capsule().strokeBorder(Theme.sand, lineWidth: 1.5))
-                .textInputAutocapitalization(.words)
-                .autocorrectionDisabled()
-
-            Button("Enter the Academy") {
-                Haptics.success()
-                let trimmed = name.trimmingCharacters(in: .whitespaces)
-                app.progress.playerName = trimmed.isEmpty ? "Discipulus" : trimmed
-                app.progress.hasOnboarded = true
-                dismiss()
-            }
-            .buttonStyle(AcademyButtonStyle())
-
-            Text("You can change accessibility settings anytime from the Academy map.")
-                .font(app.font(13))
-                .foregroundStyle(Theme.brown.opacity(0.7))
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    private var illustration: some View {
-        ZStack {
-            // Sun glow
-            Circle()
-                .fill(
-                    RadialGradient(colors: [Theme.gold.opacity(0.55), .clear], center: .center, startRadius: 10, endRadius: 160)
-                )
-                .frame(width: 320, height: 320)
-
-            // Temple silhouette
-            VStack(spacing: 0) {
-                Triangle()
-                    .fill(Theme.cream.opacity(0.9))
-                    .frame(width: 190, height: 44)
-                Rectangle()
-                    .fill(Theme.cream.opacity(0.9))
-                    .frame(width: 200, height: 10)
-                HStack(spacing: 14) {
-                    ForEach(0..<5, id: \.self) { _ in
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Theme.cream.opacity(0.9))
-                            .frame(width: 14, height: 84)
-                    }
-                }
-                Rectangle()
-                    .fill(Theme.cream.opacity(0.9))
-                    .frame(width: 200, height: 12)
-            }
-            .shadow(color: Theme.rust.opacity(0.35), radius: 12, y: 8)
-            .offset(y: 26)
-
-            CiceroAvatar(size: page >= pages.count ? 120 : 96)
-                .offset(y: -76)
-                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: page)
-
-            if page < pages.count {
-                Image(systemName: pages[page].symbol)
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(Theme.ink)
-                    .padding(14)
-                    .background(Circle().fill(Theme.gold))
-                    .overlay(Circle().strokeBorder(Theme.goldDeep, lineWidth: 2))
-                    .offset(x: 76, y: -104)
-                    .transition(.scale.combined(with: .opacity))
-                    .id("badge\(page)")
-            }
-        }
+    private func finish() {
+        Haptics.success()
+        app.progress.hasOnboarded = true
     }
 }
 
-/// Simple triangle shape for the temple pediment.
-struct Triangle: Shape {
-    nonisolated func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
-    }
+#Preview {
+    OnboardingView()
+        .environment(AppState())
 }
