@@ -8,9 +8,20 @@
 # tiber-design-files (lAFwqzz4aSzXLvXrkG6AZF). They expire ~7 days after
 # generation (2026-07-09); re-export from Figma if they have gone stale.
 
-set -euo pipefail
+set -uo pipefail
 
-CATALOG="ios/Tiber/Assets.xcassets/Figma"
+# Resolve the repo root from this script's location so it works both from a
+# terminal and as an Xcode build phase.
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CATALOG="$REPO_ROOT/ios/Tiber/Assets.xcassets/Figma"
+
+# Already fetched? Skip so incremental builds stay fast.
+if [ -f "$CATALOG/.fetched" ]; then
+  echo "Figma assets already present - skipping download."
+  exit 0
+fi
+
+FAILED=0
 mkdir -p "$CATALOG"
 
 # Contents.json for the Figma group folder
@@ -25,7 +36,12 @@ png3x() { # name url  -> single 3x PNG imageset
   local name="$1" url="$2" dir="$CATALOG/$1.imageset"
   mkdir -p "$dir"
   echo "fetching $name (png @3x)"
-  curl -fsSL -o "$dir/$name@3x.png" "$url"
+  if ! curl -fsSL -o "$dir/$name@3x.png" "$url"; then
+    echo "warning: could not download $name" >&2
+    FAILED=1
+    rm -rf "$dir"
+    return 0
+  fi
   cat > "$dir/Contents.json" <<EOF
 {
   "images" : [
@@ -42,7 +58,12 @@ png2x() { # name url -> single 2x PNG imageset
   local name="$1" url="$2" dir="$CATALOG/$1.imageset"
   mkdir -p "$dir"
   echo "fetching $name (png @2x)"
-  curl -fsSL -o "$dir/$name@2x.png" "$url"
+  if ! curl -fsSL -o "$dir/$name@2x.png" "$url"; then
+    echo "warning: could not download $name" >&2
+    FAILED=1
+    rm -rf "$dir"
+    return 0
+  fi
   cat > "$dir/Contents.json" <<EOF
 {
   "images" : [
@@ -59,7 +80,12 @@ svg() { # name url -> vector imageset
   local name="$1" url="$2" dir="$CATALOG/$1.imageset"
   mkdir -p "$dir"
   echo "fetching $name (svg)"
-  curl -fsSL -o "$dir/$name.svg" "$url"
+  if ! curl -fsSL -o "$dir/$name.svg" "$url"; then
+    echo "warning: could not download $name" >&2
+    FAILED=1
+    rm -rf "$dir"
+    return 0
+  fi
   cat > "$dir/Contents.json" <<EOF
 {
   "images" : [
@@ -143,5 +169,13 @@ png3x Top08                     "$A/2485a062-2dc9-4965-81d0-0a5641f620e9"   # 21
 png3x Top09                     "$A/8baf7d45-cd39-42eb-a357-a9c0e59c9a2c"   # 213:8599
 
 echo
-echo "All Figma assets downloaded into $CATALOG"
-echo "Open the Xcode project and build - the asset catalog picks them up automatically."
+if [ "$FAILED" -eq 0 ]; then
+  touch "$CATALOG/.fetched"
+  echo "All Figma assets downloaded into $CATALOG"
+  echo "The asset catalog picks them up automatically on the next build."
+else
+  echo "warning: some assets failed to download (offline, or the export URLs" >&2
+  echo "expired ~7 days after generation). Re-run this script with network" >&2
+  echo "access, or ask Claude to re-export the assets from Figma." >&2
+fi
+exit 0
