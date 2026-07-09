@@ -1,537 +1,400 @@
 import SwiftUI
 
-// MARK: - Style catalog
+// MARK: - Create Avatar (Figma 110:3467 "Appearance/Hair", 128:497 "Clothes/Top")
 
-enum AvatarStyle {
-    static let skinTones: [Color] = [
-        Color(hex: "FFE0C7"), Color(hex: "F3C29F"), Color(hex: "E0A981"),
-        Color(hex: "C68863"), Color(hex: "9C6644"), Color(hex: "6E4A2F")
-    ]
-
-    static let hairColors: [Color] = [
-        Color(hex: "3B2A1D"), Color(hex: "5A3A22"), Color(hex: "8B5E34"),
-        Color(hex: "C99147"), Color(hex: "D9B382"), Color(hex: "8F8F8F")
-    ]
-
-    static let hairstyleCount = 6
-    static let eyeCount = 4
-    static let outfitCount = 6
-    static let accessoryCount = 3
-
-    static func skin(_ config: AvatarConfig) -> Color {
-        skinTones[min(max(config.skinTone, 0), skinTones.count - 1)]
-    }
-
-    static func hair(_ config: AvatarConfig) -> Color {
-        hairColors[min(max(config.hairColor, 0), hairColors.count - 1)]
-    }
-}
-
-// MARK: - Full-body avatar
-
-/// Renders the player's avatar from an `AvatarConfig`.
-/// Scales to any frame; natural proportions 220 x 330.
-struct AvatarView: View {
-    let config: AvatarConfig
-
-    var body: some View {
-        DesignCanvas(design: CGSize(width: 220, height: 330)) {
-            let skin = AvatarStyle.skin(config)
-
-            // Legs & sandals
-            Capsule().fill(skin).frame(width: 24, height: 72).offset(x: -17, y: 122)
-            Capsule().fill(skin).frame(width: 24, height: 72).offset(x: 17, y: 122)
-            RoundedRectangle(cornerRadius: 4).fill(Theme.yellow900).frame(width: 30, height: 12).offset(x: -18, y: 156)
-            RoundedRectangle(cornerRadius: 4).fill(Theme.yellow900).frame(width: 30, height: 12).offset(x: 18, y: 156)
-
-            // Arms
-            Capsule().fill(skin).frame(width: 22, height: 66)
-                .rotationEffect(.degrees(14)).offset(x: -56, y: 46)
-            Capsule().fill(skin).frame(width: 22, height: 66)
-                .rotationEffect(.degrees(-14)).offset(x: 56, y: 46)
-
-            outfit
-
-            // Neck & head
-            RoundedRectangle(cornerRadius: 6).fill(skin).frame(width: 26, height: 18).offset(y: -32)
-            Circle().fill(skin).frame(width: 15, height: 15).offset(x: -41, y: -70)
-            Circle().fill(skin).frame(width: 15, height: 15).offset(x: 41, y: -70)
-            Circle().fill(skin).frame(width: 82, height: 82).offset(y: -70)
-
-            AvatarHair(config: config)
-                .offset(y: -70)
-
-            AvatarFace(config: config)
-                .offset(y: -70)
-
-            AvatarAccessory(config: config)
-                .offset(y: -70)
-        }
-    }
-
-    @ViewBuilder
-    private var outfit: some View {
-        switch config.outfit {
-        case 1: // Legionary armor
-            RoundedRectangle(cornerRadius: 22).fill(Theme.orange700).frame(width: 96, height: 100).offset(y: 32)
-            RoundedRectangle(cornerRadius: 8).fill(Theme.orange800).frame(width: 38, height: 20).offset(x: -42, y: -12)
-            RoundedRectangle(cornerRadius: 8).fill(Theme.orange800).frame(width: 38, height: 20).offset(x: 42, y: -12)
-            Capsule().fill(Theme.yellow500).frame(width: 96, height: 13).offset(y: 66)
-            Circle().fill(Theme.yellow600).frame(width: 17, height: 17).offset(y: 66)
-        case 2: // Blue toga
-            RoundedRectangle(cornerRadius: 22).fill(Color(hex: "5B7DB1")).frame(width: 96, height: 100).offset(y: 32)
-            Capsule().fill(.white).frame(width: 22, height: 106)
-                .rotationEffect(.degrees(32)).offset(x: 8, y: 26)
-        case 3: // Green tunic
-            RoundedRectangle(cornerRadius: 22).fill(Theme.laurel).frame(width: 96, height: 100).offset(y: 32)
-            Capsule().fill(Theme.yellow900).frame(width: 96, height: 11).offset(y: 52)
-        case 4: // Royal gold
-            RoundedRectangle(cornerRadius: 22).fill(Theme.yellow400).frame(width: 96, height: 100).offset(y: 32)
-            Capsule().fill(Theme.pink700).frame(width: 22, height: 106)
-                .rotationEffect(.degrees(32)).offset(x: 8, y: 26)
-        case 5: // Gray pallium
-            RoundedRectangle(cornerRadius: 22).fill(Theme.gray200).frame(width: 96, height: 100).offset(y: 32)
-            Capsule().fill(Theme.gray400).frame(width: 96, height: 11).offset(y: 52)
-        default: // White tunic + orange sash
-            RoundedRectangle(cornerRadius: 22).fill(.white).frame(width: 96, height: 100).offset(y: 32)
-            Capsule().fill(Theme.orange500).frame(width: 22, height: 106)
-                .rotationEffect(.degrees(32)).offset(x: 8, y: 26)
-        }
-    }
-}
-
-/// Head-only crop used for option previews. Natural size 120 x 120.
-struct AvatarHeadView: View {
-    let config: AvatarConfig
-
-    var body: some View {
-        DesignCanvas(design: CGSize(width: 120, height: 120)) {
-            let skin = AvatarStyle.skin(config)
-            Circle().fill(skin).frame(width: 15, height: 15).offset(x: -41, y: 8)
-            Circle().fill(skin).frame(width: 15, height: 15).offset(x: 41, y: 8)
-            Circle().fill(skin).frame(width: 82, height: 82).offset(y: 8)
-            AvatarHair(config: config).offset(y: 8)
-            AvatarFace(config: config).offset(y: 8)
-            AvatarAccessory(config: config).offset(y: 8)
-        }
-    }
-}
-
-/// Circular avatar bust for HUDs and nav bars.
-struct AvatarBustView: View {
-    let config: AvatarConfig
-    var size: CGFloat = 40
-
-    var body: some View {
-        ZStack {
-            Circle().fill(Theme.orange100)
-            AvatarHeadView(config: config)
-                .frame(width: size * 0.94, height: size * 0.94)
-                .offset(y: size * 0.06)
-        }
-        .frame(width: size, height: size)
-        .clipShape(Circle())
-        .overlay(Circle().strokeBorder(.white, lineWidth: 2))
-        .shadow(color: Theme.gray950.opacity(0.15), radius: 3, y: 1)
-    }
-}
-
-// MARK: - Avatar parts
-
-private struct AvatarHair: View {
-    let config: AvatarConfig
-
-    var body: some View {
-        let color = AvatarStyle.hair(config)
-        ZStack {
-            switch config.hairstyle {
-            case 1: // Short crop
-                Dome().fill(color).frame(width: 86, height: 38).offset(y: -24)
-                Capsule().fill(color).frame(width: 10, height: 22).offset(x: -38, y: -12)
-                Capsule().fill(color).frame(width: 10, height: 22).offset(x: 38, y: -12)
-            case 2: // Fringe
-                Dome().fill(color).frame(width: 86, height: 40).offset(y: -24)
-                Circle().fill(color).frame(width: 20, height: 20).offset(x: -22, y: -28)
-                Circle().fill(color).frame(width: 20, height: 20).offset(x: 0, y: -32)
-                Circle().fill(color).frame(width: 20, height: 20).offset(x: 22, y: -28)
-            case 3: // Curly
-                Circle().fill(color).frame(width: 30, height: 30).offset(x: -30, y: -28)
-                Circle().fill(color).frame(width: 34, height: 34).offset(x: 0, y: -38)
-                Circle().fill(color).frame(width: 30, height: 30).offset(x: 30, y: -28)
-                Circle().fill(color).frame(width: 24, height: 24).offset(x: -40, y: -8)
-                Circle().fill(color).frame(width: 24, height: 24).offset(x: 40, y: -8)
-            case 4: // Long
-                Dome().fill(color).frame(width: 88, height: 40).offset(y: -24)
-                Capsule().fill(color).frame(width: 18, height: 62).offset(x: -38, y: 8)
-                Capsule().fill(color).frame(width: 18, height: 62).offset(x: 38, y: 8)
-            case 5: // Top knot
-                Dome().fill(color).frame(width: 86, height: 36).offset(y: -25)
-                Circle().fill(color).frame(width: 24, height: 24).offset(y: -48)
-            default: // Bald
-                EmptyView()
-            }
-        }
-    }
-}
-
-private struct AvatarFace: View {
-    let config: AvatarConfig
-
-    var body: some View {
-        let hair = AvatarStyle.hair(config)
-        ZStack {
-            // Brows
-            Capsule().fill(hair.opacity(config.hairstyle == 0 ? 0.6 : 1))
-                .frame(width: 15, height: 4).offset(x: -15, y: -16)
-            Capsule().fill(hair.opacity(config.hairstyle == 0 ? 0.6 : 1))
-                .frame(width: 15, height: 4).offset(x: 15, y: -16)
-
-            // Eyes
-            switch config.eyes {
-            case 1: // Happy
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(Theme.gray900)
-                    .offset(x: -15, y: -4)
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(Theme.gray900)
-                    .offset(x: 15, y: -4)
-            case 2: // Wide
-                Circle().fill(.white).frame(width: 16, height: 16).offset(x: -15, y: -4)
-                Circle().fill(.white).frame(width: 16, height: 16).offset(x: 15, y: -4)
-                Circle().fill(Theme.gray950).frame(width: 7, height: 7).offset(x: -15, y: -4)
-                Circle().fill(Theme.gray950).frame(width: 7, height: 7).offset(x: 15, y: -4)
-            case 3: // Sleepy
-                Capsule().fill(Theme.gray900).frame(width: 14, height: 4).offset(x: -15, y: -4)
-                Capsule().fill(Theme.gray900).frame(width: 14, height: 4).offset(x: 15, y: -4)
-            default: // Dots
-                Circle().fill(Theme.gray900).frame(width: 8, height: 8).offset(x: -15, y: -4)
-                Circle().fill(Theme.gray900).frame(width: 8, height: 8).offset(x: 15, y: -4)
-            }
-
-            // Blush & mouth
-            Circle().fill(Theme.pink200.opacity(0.8)).frame(width: 11, height: 11).offset(x: -26, y: 8)
-            Circle().fill(Theme.pink200.opacity(0.8)).frame(width: 11, height: 11).offset(x: 26, y: 8)
-            Capsule().fill(Color(hex: "C96F4A")).frame(width: 16, height: 5).offset(y: 18)
-        }
-    }
-}
-
-private struct AvatarAccessory: View {
-    let config: AvatarConfig
-
-    var body: some View {
-        ZStack {
-            switch config.accessory {
-            case 1: // Golden laurel
-                Image(systemName: "laurel.leading")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Theme.yellow500)
-                    .rotationEffect(.degrees(-18))
-                    .offset(x: -31, y: -30)
-                Image(systemName: "laurel.trailing")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Theme.yellow500)
-                    .rotationEffect(.degrees(18))
-                    .offset(x: 31, y: -30)
-            case 2: // Red headband
-                Capsule().fill(Theme.pink600).frame(width: 82, height: 11).offset(y: -26)
-            default:
-                EmptyView()
-            }
-        }
-    }
-}
-
-// MARK: - Create Avatar screen
-
-private enum AvatarCategory: String, CaseIterable, Identifiable {
-    case skin = "Skin Tone"
-    case hair = "Hairstyles"
-    case hairColor = "Hair Color"
-    case eyes = "Eyes"
-    case outfit = "Full Body"
-    case accessory = "Accessories"
-
-    var id: String { rawValue }
-
-    var group: AvatarGroup {
-        switch self {
-        case .skin, .hair, .hairColor, .eyes: return .appearance
-        case .outfit, .accessory: return .clothing
-        }
-    }
-
-    var optionCount: Int {
-        switch self {
-        case .skin: return AvatarStyle.skinTones.count
-        case .hair: return AvatarStyle.hairstyleCount
-        case .hairColor: return AvatarStyle.hairColors.count
-        case .eyes: return AvatarStyle.eyeCount
-        case .outfit: return AvatarStyle.outfitCount
-        case .accessory: return AvatarStyle.accessoryCount
-        }
-    }
-}
-
-private enum AvatarGroup {
+private enum AvatarCategory: Int, CaseIterable, Identifiable {
     case appearance
     case clothing
+    case interactions
+
+    var id: Int { rawValue }
+
+    var asset: String {
+        switch self {
+        case .appearance: return "ChipAppearance"
+        case .clothing: return "ChipClothing"
+        case .interactions: return "ChipInteractions"
+        }
+    }
+
+    var fallback: String {
+        switch self {
+        case .appearance: return "person.fill"
+        case .clothing: return "tshirt.fill"
+        case .interactions: return "hand.wave.fill"
+        }
+    }
+
+    var tabs: [String] {
+        switch self {
+        case .appearance: return ["Skin Tone", "Face", "Hairstyles", "Eyes", "Body Shape"]
+        case .clothing, .interactions: return ["Full Body", "Top", "Bottoms", "Accessories", "Shoes"]
+        }
+    }
+
+    /// Grid tile assets available for this category.
+    var tiles: [String] {
+        switch self {
+        case .appearance: return (1...9).map { String(format: "Hair%02d", $0) }
+        case .clothing, .interactions: return (1...9).map { String(format: "Top%02d", $0) }
+        }
+    }
+
+    /// Large preview illustration above the sheet.
+    var preview: String {
+        switch self {
+        case .appearance: return "AvatarPreviewBust"
+        case .clothing, .interactions: return "AvatarPreviewBody"
+        }
+    }
 }
 
-/// The "Create Avatar" editor from the profile designs.
+/// Hair color swatches from the design's color row (221:10087).
+private let hairColors: [Color] = [
+    Color(hex: "B0B0B0"),
+    Color(hex: "FFC44D"),
+    Color(hex: "C06B2D"),
+    Color(hex: "8C3B2A"),
+    Color(hex: "5D3A4E"),
+    Color(hex: "453734"),
+    Color(hex: "221818")
+]
+
 struct AvatarCreatorView: View {
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
-    var isPresentedModally: Bool = false
 
-    @State private var config = AvatarConfig()
-    @State private var history: [AvatarConfig] = []
-    @State private var future: [AvatarConfig] = []
-    @State private var group: AvatarGroup = .appearance
-    @State private var category: AvatarCategory = .skin
-    @State private var showSettings = false
-    @State private var loaded = false
-
-    private let columns = [GridItem(.adaptive(minimum: 84), spacing: 12)]
+    @State private var category: AvatarCategory = .appearance
+    @State private var tab = 2 // "Hairstyles" is active in the design
+    @State private var colorIndex = 2
+    @State private var selectedTile = 1
+    @State private var history: [(Int, Int)] = []
+    @State private var future: [(Int, Int)] = []
 
     var body: some View {
         VStack(spacing: 0) {
-            navBar
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-            ScrollView {
-                VStack(spacing: 16) {
-                    previewCard
-                    categoryTabs
-                    optionGrid
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 14)
-                .padding(.bottom, 110)
-            }
+            customizeArea
+            bottomSheet
         }
         .background(Color.white.ignoresSafeArea())
-        .sheet(isPresented: $showSettings) {
-            SettingsView()
-        }
         .onAppear {
-            guard !loaded else { return }
-            config = app.progress.avatar
-            loaded = true
+            selectedTile = category == .appearance
+                ? app.progress.avatar.hairstyle
+                : app.progress.avatar.outfit
+            colorIndex = app.progress.avatar.hairColor
         }
     }
 
-    // MARK: Pieces
+    // MARK: - Customize Avatar Area (213:6423 / 213:7577)
 
-    private var navBar: some View {
-        ZStack {
-            Text("Create Avatar")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(Theme.gray950)
+    private var customizeArea: some View {
+        ZStack(alignment: .top) {
+            LinearGradient(
+                colors: [Theme.avatarCircle, Color(hex: "F3D9B2")],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            // Avatar preview illustration.
+            FigmaImage(name: category.preview)
+                .frame(
+                    width: category == .appearance ? 303 : 140,
+                    height: category == .appearance ? 280 : 238
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.top, category == .appearance ? 100 : 96)
+                .clipped()
+
+            // Top Bar (110:3468): back, centered title, Save.
             HStack {
                 Button {
                     Haptics.tap()
-                    if isPresentedModally {
-                        dismiss()
-                    } else {
-                        showSettings = true
-                    }
+                    dismiss()
                 } label: {
-                    Image(systemName: isPresentedModally ? "chevron.left" : "gearshape.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.gray950)
-                        .frame(width: 38, height: 38)
-                        .background(Circle().fill(Theme.gray50))
+                    ZStack {
+                        Circle().fill(Color.white)
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Theme.gray950)
+                    }
+                    .frame(width: 40, height: 40)
                 }
+
                 Spacer()
+
                 Button {
-                    Haptics.success()
-                    app.progress.avatar = config
-                    if isPresentedModally { dismiss() }
+                    Haptics.tap()
+                    save()
+                    dismiss()
                 } label: {
                     Text("Save")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 9)
-                        .background(Capsule().fill(Theme.orange400))
+                        .font(.rubik(14, .semibold))
+                        .tracking(0.14)
+                        .foregroundStyle(Theme.maroon)
+                        .padding(.horizontal, 20)
+                        .frame(height: 40)
+                        .background(Capsule().fill(Theme.primary))
                 }
             }
-        }
-    }
+            .overlay(
+                Text("Create Avatar")
+                    .font(.rubik(17, .semibold))
+                    .foregroundStyle(Theme.gray950)
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
 
-    private var previewCard: some View {
-        ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.orange100, Theme.orange300],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-
-            AvatarView(config: config)
-                .frame(height: 250)
-                .padding(.bottom, 46)
-
-            HStack {
-                groupButton(icon: "person.fill", value: .appearance)
-                groupButton(icon: "tshirt.fill", value: .clothing)
+            // Category chips + undo/redo (Frame 5139577).
+            VStack {
                 Spacer()
-                historyButton(icon: "arrow.uturn.backward", enabled: !history.isEmpty) { undo() }
-                historyButton(icon: "arrow.uturn.forward", enabled: !future.isEmpty) { redo() }
+                HStack {
+                    HStack(spacing: 12) {
+                        ForEach(AvatarCategory.allCases) { cat in
+                            chipButton(cat)
+                        }
+                    }
+                    Spacer()
+                    HStack(spacing: 12) {
+                        roundControl(asset: "ChipUndo", fallback: "arrow.uturn.backward", enabled: !history.isEmpty) {
+                            undo()
+                        }
+                        roundControl(asset: "ChipRedo", fallback: "arrow.uturn.forward", enabled: !future.isEmpty) {
+                            redo()
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
             }
-            .padding(12)
         }
-        .frame(height: 320)
+        .frame(height: 399)
+        .clipped()
+        .ignoresSafeArea(edges: .top)
     }
 
-    private func groupButton(icon: String, value: AvatarGroup) -> some View {
+    private func chipButton(_ cat: AvatarCategory) -> some View {
         Button {
             Haptics.tap()
-            group = value
-            category = value == .appearance ? .skin : .outfit
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                category = cat
+                tab = cat == .appearance ? 2 : 0
+                selectedTile = cat == .appearance ? app.progress.avatar.hairstyle : app.progress.avatar.outfit
+            }
         } label: {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(group == value ? .white : Theme.gray500)
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(group == value ? Theme.orange500 : .white))
-                .shadow(color: Theme.gray950.opacity(0.12), radius: 3, y: 1)
+            ZStack {
+                if category == cat {
+                    Circle().fill(
+                        LinearGradient(
+                            colors: [Theme.orange500, Theme.orange400],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    Circle().strokeBorder(Color.white, lineWidth: 2)
+                } else {
+                    Circle().fill(Color.white)
+                }
+                if UIImage(named: cat.asset) != nil {
+                    Image(cat.asset)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                } else {
+                    Image(systemName: cat.fallback)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(category == cat ? .white : Theme.gray400)
+                }
+            }
+            .frame(width: 40, height: 40)
         }
+        .buttonStyle(.plain)
     }
 
-    private func historyButton(icon: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+    private func roundControl(asset: String, fallback: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button {
             Haptics.tap()
             action()
         } label: {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.gray700)
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(.white))
-                .shadow(color: Theme.gray950.opacity(0.12), radius: 3, y: 1)
+            ZStack {
+                Circle().fill(Color.white)
+                if UIImage(named: asset) != nil {
+                    Image(asset)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+                        .opacity(enabled ? 1 : 0.35)
+                } else {
+                    Image(systemName: fallback)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(enabled ? Theme.gray950 : Theme.gray300)
+                }
+            }
+            .frame(width: 40, height: 40)
         }
         .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.4)
+        .buttonStyle(.plain)
     }
 
-    private var categoryTabs: some View {
+    // MARK: - Bottom Content (110:3598 / 128:509)
+
+    private var bottomSheet: some View {
+        VStack(spacing: 0) {
+            menuTabs
+            if category == .appearance {
+                colorRow
+            }
+            tileGrid
+        }
+        .background(Color.white)
+    }
+
+    /// Menu (232:10136): horizontally scrolling labels, 2pt underline.
+    private var menuTabs: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 22) {
-                ForEach(AvatarCategory.allCases.filter { $0.group == group }) { item in
+            HStack(spacing: 30) {
+                ForEach(category.tabs.indices, id: \.self) { index in
                     Button {
                         Haptics.tap()
-                        category = item
+                        withAnimation { tab = index }
                     } label: {
-                        VStack(spacing: 6) {
-                            Text(item.rawValue)
-                                .font(.system(size: 14, weight: category == item ? .bold : .medium))
-                                .foregroundStyle(category == item ? Theme.gray950 : Theme.gray400)
-                            Capsule()
-                                .fill(category == item ? Theme.orange500 : .clear)
-                                .frame(width: 26, height: 3)
+                        VStack(spacing: 12) {
+                            Text(category.tabs[index])
+                                .font(.rubik(14, tab == index ? .medium : .regular))
+                                .foregroundStyle(tab == index ? Theme.gray950 : Theme.gray600)
+                            Rectangle()
+                                .fill(tab == index ? Theme.gray950 : .clear)
+                                .frame(width: 72, height: 2)
                         }
+                        .fixedSize()
                     }
+                    .buttonStyle(.plain)
                 }
-                Spacer(minLength: 0)
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+        }
+        .frame(height: 49)
+    }
+
+    /// Color row (221:10086): 36pt swatches, selected ringed with a check.
+    private var colorRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                ForEach(hairColors.indices, id: \.self) { index in
+                    Button {
+                        Haptics.tap()
+                        pushHistory()
+                        colorIndex = index
+                    } label: {
+                        ZStack {
+                            Circle().fill(hairColors[index])
+                            if colorIndex == index {
+                                Circle()
+                                    .strokeBorder(Color.white, lineWidth: 2)
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(colorIndex == index ? Theme.orange500 : .clear, lineWidth: 2)
+                                .frame(width: 42, height: 42)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+        }
+        .frame(height: 64)
+    }
+
+    /// Avatar option grid (128:349 / 213:8189): 3 columns of 101pt tiles.
+    private var tileGrid: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 3),
+                spacing: 16
+            ) {
+                ForEach(category.tiles.indices, id: \.self) { index in
+                    tile(index)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
         }
     }
 
-    private var optionGrid: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(0..<category.optionCount, id: \.self) { index in
-                optionTile(index: index)
-            }
-        }
-    }
-
-    private func optionTile(index: Int) -> some View {
-        let isSelected = selectedIndex == index
-        return Button {
+    private func tile(_ index: Int) -> some View {
+        Button {
             Haptics.tap()
-            select(index)
+            pushHistory()
+            selectedTile = index
+            save()
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Theme.orange50)
-                tileContent(index: index)
-                    .padding(10)
+                    .fill(selectedTile == index ? Theme.orange50 : Theme.gray50)
+                FigmaImage(name: category.tiles[index])
+                    .aspectRatio(1, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .frame(height: 92)
+            .aspectRatio(1, contentMode: .fit)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(isSelected ? Theme.orange500 : Theme.gray100, lineWidth: isSelected ? 2.5 : 1.5)
+                    .strokeBorder(selectedTile == index ? Theme.orange400 : .clear, lineWidth: 1.5)
             )
         }
+        .buttonStyle(.plain)
     }
 
-    @ViewBuilder
-    private func tileContent(index: Int) -> some View {
-        switch category {
-        case .skin:
-            Circle()
-                .fill(AvatarStyle.skinTones[index])
-                .frame(width: 52, height: 52)
-        case .hairColor:
-            Circle()
-                .fill(AvatarStyle.hairColors[index])
-                .frame(width: 52, height: 52)
-        case .hair, .eyes, .accessory:
-            AvatarHeadView(config: previewConfig(index: index))
-        case .outfit:
-            AvatarView(config: previewConfig(index: index))
-        }
-    }
+    // MARK: - History & persistence
 
-    // MARK: State
-
-    private var selectedIndex: Int {
-        switch category {
-        case .skin: return config.skinTone
-        case .hair: return config.hairstyle
-        case .hairColor: return config.hairColor
-        case .eyes: return config.eyes
-        case .outfit: return config.outfit
-        case .accessory: return config.accessory
-        }
-    }
-
-    private func previewConfig(index: Int) -> AvatarConfig {
-        var preview = config
-        switch category {
-        case .skin: preview.skinTone = index
-        case .hair: preview.hairstyle = index
-        case .hairColor: preview.hairColor = index
-        case .eyes: preview.eyes = index
-        case .outfit: preview.outfit = index
-        case .accessory: preview.accessory = index
-        }
-        return preview
-    }
-
-    private func select(_ index: Int) {
-        history.append(config)
+    private func pushHistory() {
+        history.append((selectedTile, colorIndex))
         future.removeAll()
-        config = previewConfig(index: index)
     }
 
     private func undo() {
-        guard let previous = history.popLast() else { return }
-        future.append(config)
-        config = previous
+        guard let last = history.popLast() else { return }
+        future.append((selectedTile, colorIndex))
+        (selectedTile, colorIndex) = last
+        save()
     }
 
     private func redo() {
         guard let next = future.popLast() else { return }
-        history.append(config)
-        config = next
+        history.append((selectedTile, colorIndex))
+        (selectedTile, colorIndex) = next
+        save()
+    }
+
+    private func save() {
+        if category == .appearance {
+            app.progress.avatar.hairstyle = selectedTile
+            app.progress.avatar.hairColor = colorIndex
+        } else {
+            app.progress.avatar.outfit = selectedTile
+        }
+    }
+}
+
+// MARK: - Small avatar bust (used by Settings)
+
+struct AvatarBustView: View {
+    let config: AvatarConfig
+    var size: CGFloat = 44
+
+    var body: some View {
+        ZStack {
+            Circle().fill(Theme.avatarCircle)
+            FigmaImage(name: "HudProfile")
+                .clipShape(Circle())
+        }
+        .frame(width: size, height: size)
     }
 }
 

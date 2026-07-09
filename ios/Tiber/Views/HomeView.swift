@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Home: the full-screen Roman academy map with the stats HUD on top and
-/// the selected-level card floating above the tab bar.
+/// Home (Figma "Home color option 01", node 92:1510): full-screen map with
+/// the stats HUD, level pills and the floating level card above the navbar.
 struct HomeView: View {
     @Environment(AppState.self) private var app
     var onAvatarTap: () -> Void = {}
@@ -10,24 +10,24 @@ struct HomeView: View {
     @State private var activeLevel: AcademyLevel?
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             RomanMapView(selected: selected) { level in
                 guard app.isUnlocked(level) else { return }
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     selected = level
                 }
             }
-            .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                hud
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
+            topBar
+
+            VStack {
                 Spacer()
                 levelCard
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 88)
+                    .padding(.horizontal, 20)
+                    // 16pt above the 100pt navbar, per the Content stack (129:6959).
+                    .padding(.bottom, 116)
             }
+            .ignoresSafeArea(edges: .bottom)
         }
         .fullScreenCover(item: $activeLevel) { level in
             switch level {
@@ -37,79 +37,105 @@ struct HomeView: View {
             }
         }
         .onAppear {
-            // Start on the furthest unlocked level.
             selected = AcademyLevel.allCases.last(where: { app.isUnlocked($0) }) ?? .forum
         }
     }
 
-    // MARK: - HUD
+    // MARK: - Top Bar (92:1512)
 
-    private var hud: some View {
-        HStack(spacing: 8) {
-            HUDPill(value: app.progress.coins.formatted()) {
-                ZStack {
-                    Circle().fill(Theme.yellow400)
-                    Circle().strokeBorder(Theme.yellow600, lineWidth: 1.5)
-                    Image(systemName: "building.columns")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(Theme.yellow700)
-                }
-                .frame(width: 18, height: 18)
+    private var topBar: some View {
+        HStack(alignment: .top) {
+            // "Strike" pill: white, radius 100, px16 py8, groups spaced 24.
+            HStack(spacing: 24) {
+                statItem(icon: "HudCoin", fallback: "bitcoinsign.circle.fill", value: formatted(app.progress.coins))
+                statItem(icon: "HudHeart", fallback: "heart.fill", value: "\(app.progress.hearts)")
+                statItem(icon: "HudAmphora", fallback: "trophy.fill", value: "\(app.progress.unlockedAchievements.count)")
             }
-            HUDPill(value: "\(app.progress.hearts)") {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.pink500)
-            }
-            HUDPill(value: "\(app.progress.unlockedAchievements.count)") {
-                Image(systemName: "medal.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.yellow600)
-            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(Color.white))
 
             Spacer()
 
+            // Profile chip (176:4901): 44pt circle on #FFEEC2.
             Button {
                 Haptics.tap()
                 onAvatarTap()
             } label: {
-                AvatarBustView(config: app.progress.avatar, size: 42)
+                ZStack {
+                    Circle().fill(Theme.avatarCircle)
+                    FigmaImage(name: "HudProfile")
+                        .clipShape(Circle())
+                }
+                .frame(width: 44, height: 44)
             }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 10)
+        .background(
+            // Scrim: black 40% fading out at ~93% of the 108pt header.
+            LinearGradient(
+                stops: [
+                    .init(color: .black.opacity(0.4), location: 0),
+                    .init(color: .black.opacity(0.4), location: 0.486),
+                    .init(color: .black.opacity(0), location: 0.93)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
+    }
+
+    private func statItem(icon: String, fallback: String, value: String) -> some View {
+        HStack(spacing: 6) {
+            if UIImage(named: icon) != nil {
+                Image(icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+            } else {
+                Image(systemName: fallback)
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.orange400)
+                    .frame(width: 28, height: 28)
+            }
+            Text(value)
+                .font(.rubik(14))
+                .foregroundStyle(Theme.inkText)
+                .contentTransition(.numericText())
         }
     }
 
-    // MARK: - Level card
+    /// Formats like the design's "2.451" (dot as thousands separator).
+    private func formatted(_ value: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "."
+        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    // MARK: - Floating Games Info (92:1913)
 
     private var levelCard: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Image(systemName: "hexagon.fill")
-                    .font(.system(size: 52))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Theme.yellow400, Theme.orange500],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .shadow(color: Theme.orange500.opacity(0.4), radius: 4, y: 2)
-                HStack(spacing: -3) {
-                    Image(systemName: "laurel.leading")
-                    Image(systemName: "laurel.trailing")
-                }
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(.white)
-            }
+        HStack {
+            HStack(spacing: 10) {
+                // Level Image (192:43): 68pt hexagon badge.
+                FigmaImage(name: "LevelBadgeBeginner", placeholder: Theme.orange200)
+                    .frame(width: 68, height: 68)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(selected.rank)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Theme.gray950)
-                Text(selected.rankDescription)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.gray500)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(selected.rank)
+                        .font(.rubik(14, .semibold))
+                        .foregroundStyle(Theme.plum)
+                    Text(selected.rankDescription)
+                        .font(.rubik(13))
+                        .lineSpacing(13 * 0.4)
+                        .foregroundStyle(Theme.gray600)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(width: 137, alignment: .leading)
             }
 
             Spacer(minLength: 8)
@@ -119,39 +145,15 @@ struct HomeView: View {
                 activeLevel = selected
             } label: {
                 Text("Play")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 26)
-                    .padding(.vertical, 11)
-                    .background(Capsule().fill(Theme.orange400))
+                    .font(.rubik(14, .medium))
+                    .foregroundStyle(Theme.maroon)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(Theme.playCTA))
             }
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color.white)
-                .shadow(color: Theme.orange900.opacity(0.25), radius: 12, y: 6)
-        )
-    }
-}
-
-/// Small white stat capsule in the map HUD.
-private struct HUDPill<Icon: View>: View {
-    let value: String
-    @ViewBuilder let icon: () -> Icon
-
-    var body: some View {
-        HStack(spacing: 5) {
-            icon()
-            Text(value)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Theme.gray950)
-                .contentTransition(.numericText())
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(Capsule().fill(Color.white.opacity(0.95)))
-        .shadow(color: Theme.orange900.opacity(0.2), radius: 3, y: 2)
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: 24).fill(Color.white))
     }
 }
 

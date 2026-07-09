@@ -1,72 +1,46 @@
 import SwiftUI
 
-/// Full-screen launch illustration: a centurion standing in a golden palace.
-struct SplashView: View {
-    @State private var appeared = false
+/// Renders a Figma-exported asset at its design size; falls back to a flat
+/// placeholder tint until `scripts/fetch-figma-assets.sh` has been run.
+struct FigmaImage: View {
+    let name: String
+    var placeholder: Color = .clear
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Theme.orange300, Theme.orange500, Theme.orange700],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            DesignCanvas(design: CGSize(width: 390, height: 844), fill: true) {
-                // Back wall arches
-                HStack(spacing: 34) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        ArchShape()
-                            .fill(Theme.orange200.opacity(0.35))
-                            .frame(width: 90, height: 190)
-                    }
-                }
-                .offset(y: -220)
-
-                // Side columns
-                RomanColumn(width: 44, height: 560, color: Theme.orange100.opacity(0.85))
-                    .offset(x: -168, y: -60)
-                RomanColumn(width: 44, height: 560, color: Theme.orange100.opacity(0.85))
-                    .offset(x: 168, y: -60)
-
-                // Candelabra
-                candelabrum.offset(x: -108, y: 120)
-                candelabrum.offset(x: 108, y: 120)
-
-                // Floor
-                Ellipse()
-                    .fill(Theme.orange800.opacity(0.35))
-                    .frame(width: 480, height: 190)
-                    .offset(y: 400)
-                Ellipse()
-                    .fill(Theme.orange900.opacity(0.3))
-                    .frame(width: 300, height: 70)
-                    .offset(y: 320)
-
-                CenturionFigure()
-                    .offset(y: 110)
-                    .scaleEffect(appeared ? 1 : 0.92)
-                    .opacity(appeared ? 1 : 0)
-            }
-            .ignoresSafeArea()
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.7, dampingFraction: 0.8)) {
-                appeared = true
-            }
+        if UIImage(named: name) != nil {
+            Image(name)
+                .resizable()
+                .scaledToFill()
+        } else {
+            placeholder
         }
     }
+}
 
-    private var candelabrum: some View {
-        VStack(spacing: 0) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 20))
-                .foregroundStyle(Theme.yellow300)
-            Capsule().fill(Theme.yellow600).frame(width: 26, height: 8)
-            Capsule().fill(Theme.yellow600).frame(width: 8, height: 96)
-            Capsule().fill(Theme.yellow600).frame(width: 34, height: 8)
+/// A000 - Splash (Figma node 479:5053): full-screen palace hall with the
+/// centurion holding a scroll, and the layered arch rings at the top edge.
+struct SplashView: View {
+    var body: some View {
+        DesignCanvas {
+            Color.white
+
+            // Top arch rings (ellipses cropped by the top edge)
+            FigmaImage(name: "SplashEllipseOuter")
+                .placed(x: 40.03, y: -48.07, w: 294.95, h: 97.14)
+            FigmaImage(name: "SplashEllipseMid")
+                .placed(x: 48.66, y: -48.07, w: 277.68, h: 97.14)
+            FigmaImage(name: "SplashEllipseInner")
+                .placed(x: 89.85, y: -33.66, w: 195.30, h: 68.32)
+            FigmaImage(name: "SplashLaurel")
+                .placed(x: 109, y: -39, w: 160, h: 72.85)
+            FigmaImage(name: "SplashEllipseCore")
+                .placed(x: 118.21, y: -23.74, w: 138.58, h: 48.48)
+
+            // Palace hall + centurion (group 645:18557)
+            FigmaImage(name: "SplashMain", placeholder: Theme.orange100)
+                .placed(x: -287.10, y: -9.15, w: 948.44, h: 927.15)
         }
+        .background(Color.white)
     }
 }
 

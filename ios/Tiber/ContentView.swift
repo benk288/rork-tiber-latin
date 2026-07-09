@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Root flow: Splash -> Onboarding -> Sign in -> Main tabs.
+/// Root flow: Splash -> Tutorial -> Sign in -> Main tabs.
 struct ContentView: View {
     @Environment(AppState.self) private var app
     @State private var splashDone = false
@@ -25,105 +25,150 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.35), value: app.progress.hasOnboarded)
         .animation(.easeInOut(duration: 0.35), value: app.progress.isSignedIn)
         .task {
+            TiberFont.registerIfNeeded()
             try? await Task.sleep(for: .seconds(2))
             splashDone = true
         }
     }
 }
 
-// MARK: - Main tabs
+// MARK: - Main tabs (Figma Navbar 213:8946)
 
 enum MainTab: String, CaseIterable, Identifiable {
     case home = "Home"
-    case codex = "Codex"
-    case rewards = "Rewards"
-    case parents = "Parents"
-    case profile = "Profile"
+    case leaderboard = "Leaderboard"
+    case tutorials = "Tutorials"
+    case tracker = "Tracker"
+    case settings = "Settings"
 
     var id: String { rawValue }
+
+    /// Figma-exported icon asset for the navbar.
+    var asset: String {
+        switch self {
+        case .home: return "TabIconHome"
+        case .leaderboard: return "TabIconLeaderboard"
+        case .tutorials: return "TabIconTutorials"
+        case .tracker: return "TabIconTracker"
+        case .settings: return "TabIconSettings"
+        }
+    }
 
     var symbol: String {
         switch self {
         case .home: return "house.fill"
-        case .codex: return "book.closed.fill"
-        case .rewards: return "medal.fill"
-        case .parents: return "chart.bar.fill"
-        case .profile: return "person.fill"
+        case .leaderboard: return "trophy.fill"
+        case .tutorials: return "book.closed.fill"
+        case .tracker: return "chart.bar.fill"
+        case .settings: return "gearshape.fill"
         }
     }
 }
 
 struct MainTabView: View {
+    @Environment(AppState.self) private var app
     @State private var tab: MainTab = .home
+    @State private var showAvatarCreator = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch tab {
                 case .home:
-                    HomeView(onAvatarTap: { tab = .profile })
-                case .codex:
-                    CodexView()
-                case .rewards:
+                    HomeView(onAvatarTap: { showAvatarCreator = true })
+                case .leaderboard:
                     RewardsView()
-                case .parents:
+                case .tutorials:
+                    CodexView()
+                case .tracker:
                     ParentDashboardView()
-                case .profile:
-                    AvatarCreatorView()
+                case .settings:
+                    SettingsView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            TiberTabBar(selected: $tab)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 6)
+            TiberNavbar(selected: $tab)
         }
         .ignoresSafeArea(.keyboard)
+        .fullScreenCover(isPresented: $showAvatarCreator) {
+            AvatarCreatorView()
+        }
     }
 }
 
-/// Floating white tab bar; the active tab expands into an amber pill.
-struct TiberTabBar: View {
+/// The design's bottom navbar (213:8956): a 100pt white bar, the active tab
+/// as a 112x44 gradient pill with icon + label, other tabs as 24pt icons.
+struct TiberNavbar: View {
     @Binding var selected: MainTab
 
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(MainTab.allCases) { tab in
-                Button {
-                    Haptics.tap()
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        selected = tab
-                    }
-                } label: {
-                    if selected == tab {
-                        HStack(spacing: 6) {
-                            Image(systemName: tab.symbol)
-                                .font(.system(size: 16, weight: .semibold))
-                            Text(tab.rawValue)
-                                .font(.system(size: 13, weight: .bold))
+        ZStack(alignment: .topLeading) {
+            // Rectangle 4: white navbar backdrop.
+            if UIImage(named: "NavbarBackground") != nil {
+                Image("NavbarBackground")
+                    .resizable()
+                    .frame(height: 100)
+            } else {
+                Rectangle()
+                    .fill(Color.white)
+                    .frame(height: 100)
+                    .shadow(color: .black.opacity(0.08), radius: 12, y: -4)
+            }
+
+            HStack(spacing: 27) {
+                activePill
+
+                HStack(spacing: 28) {
+                    ForEach(MainTab.allCases.filter { $0 != selected }) { tab in
+                        Button {
+                            Haptics.tap()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                selected = tab
+                            }
+                        } label: {
+                            navIcon(tab, size: 24)
                         }
-                        .foregroundStyle(Theme.orange950)
-                        .padding(.horizontal, 15)
-                        .padding(.vertical, 11)
-                        .background(Capsule().fill(Theme.orange300))
-                    } else {
-                        Image(systemName: tab.symbol)
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(Theme.gray300)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
+                        .buttonStyle(.plain)
                     }
                 }
-                .buttonStyle(.plain)
+                .frame(height: 44)
             }
+            .padding(.leading, 24)
+            .padding(.top, 14)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 26)
-                .fill(Color.white)
-                .shadow(color: Theme.gray950.opacity(0.15), radius: 10, y: 4)
-        )
+        .frame(height: 100, alignment: .top)
+        .frame(maxHeight: .infinity, alignment: .bottom)
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    private var activePill: some View {
+        HStack(spacing: 0) {
+            navIcon(selected, size: 36)
+                .padding(.leading, 4)
+            Text(selected.rawValue)
+                .font(.rubik(14, .medium))
+                .foregroundStyle(Theme.maroon)
+                .frame(maxWidth: .infinity)
+                .padding(.trailing, 8)
+        }
+        .frame(width: 112, height: 44)
+        .background(Capsule().fill(Theme.homePillGradient))
+    }
+
+    @ViewBuilder
+    private func navIcon(_ tab: MainTab, size: CGFloat) -> some View {
+        if UIImage(named: tab.asset) != nil {
+            Image(tab.asset)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+        } else {
+            Image(systemName: tab.symbol)
+                .font(.system(size: size * 0.66, weight: .medium))
+                .foregroundStyle(tab == selected ? Theme.maroon : Theme.gray300)
+                .frame(width: size, height: size)
+        }
     }
 }
 

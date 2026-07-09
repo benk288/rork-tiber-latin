@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // MARK: - Flow coordinator
 
@@ -8,7 +9,7 @@ private enum AuthScreen: Equatable {
     case confirm(String)
 }
 
-/// Sign in -> Create account -> Confirm registration, as separate screens.
+/// B000 - Sign In / Sign Up (Figma section 419:1495).
 struct AuthFlowView: View {
     @State private var screen: AuthScreen = .signIn
 
@@ -33,56 +34,74 @@ struct AuthFlowView: View {
     }
 }
 
-// MARK: - Shared form pieces
+// MARK: - Shared pieces (exact Figma components)
 
-/// Labeled rounded text field in the Tiber form style.
+/// Header icon button: 24px asset over the illustration (566:2662 / 566:2664).
+struct AuthHeaderIcon: View {
+    let asset: String
+    let fallback: String
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            Haptics.tap()
+            action()
+        } label: {
+            if UIImage(named: asset) != nil {
+                Image(asset)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+            } else {
+                Image(systemName: fallback)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.gray950)
+                    .frame(width: 24, height: 24)
+            }
+        }
+    }
+}
+
+/// Forms (566:3585...): 12px label, 52px input, 10px radius, #E7E7E7 stroke.
 struct TiberField: View {
     let label: String
     @Binding var text: String
-    var placeholder: String = ""
     var secure: Bool = false
     var keyboard: UIKeyboardType = .default
-    var icon: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Theme.gray500)
-            HStack(spacing: 8) {
-                if let icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 15))
-                        .foregroundStyle(Theme.gray400)
+                .font(.rubik(12))
+                .tracking(0.12)
+                .foregroundStyle(Theme.gray600)
+            Group {
+                if secure {
+                    SecureField("", text: $text)
+                } else {
+                    TextField("", text: $text)
                 }
-                Group {
-                    if secure {
-                        SecureField(placeholder, text: $text)
-                    } else {
-                        TextField(placeholder, text: $text)
-                    }
-                }
-                .font(.system(size: 16))
-                .foregroundStyle(Theme.gray950)
-                .keyboardType(keyboard)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
             }
-            .padding(.horizontal, 14)
-            .frame(height: 50)
+            .font(.rubik(16))
+            .foregroundStyle(Theme.gray950)
+            .keyboardType(keyboard)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .padding(16)
+            .frame(height: 52)
             .background(
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: 10)
                     .fill(Color.white)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .strokeBorder(Theme.gray200, lineWidth: 1.5)
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(Theme.gray100, lineWidth: 1)
                     )
             )
         }
     }
 }
 
-/// Full-width filled capsule button.
+/// Button - 52px - Fill Container (default): #FAAF30, radius 24, #772C10 label.
 struct TiberPrimaryButton: View {
     let title: String
     var enabled: Bool = true
@@ -94,17 +113,21 @@ struct TiberPrimaryButton: View {
             action()
         } label: {
             Text(title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(enabled ? .white : Theme.gray400)
+                .font(.rubik(16, .semibold))
+                .tracking(0.16)
+                .foregroundStyle(enabled ? Theme.buttonText : Theme.gray600)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(Capsule().fill(enabled ? Theme.orange400 : Theme.gray100))
+                .frame(height: 52)
+                .background(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(enabled ? Theme.primary : Theme.gray100)
+                )
         }
         .disabled(!enabled)
     }
 }
 
-/// Full-width outlined capsule button.
+/// Button - 52px (secondary): #772C10 border, radius 24.
 struct TiberOutlineButton: View {
     let title: String
     let action: () -> Void
@@ -115,21 +138,23 @@ struct TiberOutlineButton: View {
             action()
         } label: {
             Text(title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.orange600)
+                .font(.rubik(16, .semibold))
+                .tracking(0.16)
+                .foregroundStyle(Theme.buttonText)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(
-                    Capsule().strokeBorder(Theme.orange400, lineWidth: 1.5)
+                .frame(height: 52)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(Theme.buttonText, lineWidth: 1)
                 )
         }
     }
 }
 
-/// Round Google / Apple sign-in button.
-struct SocialCircleButton: View {
-    enum Kind { case google, apple }
-    let kind: Kind
+/// Round 52px social button with the Google/Apple mark (586:1433).
+struct SocialButton: View {
+    let asset: String
+    let fallback: String
     let action: () -> Void
 
     var body: some View {
@@ -138,317 +163,328 @@ struct SocialCircleButton: View {
             action()
         } label: {
             ZStack {
-                Circle()
-                    .fill(Color.white)
-                    .overlay(Circle().strokeBorder(Theme.gray200, lineWidth: 1.5))
-                switch kind {
-                case .google:
-                    Text("G")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(Color(hex: "4285F4"))
-                case .apple:
-                    Image(systemName: "apple.logo")
-                        .font(.system(size: 20))
+                Circle().strokeBorder(Theme.buttonText, lineWidth: 1)
+                if UIImage(named: asset) != nil {
+                    Image(asset)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+                } else {
+                    Image(systemName: fallback)
+                        .font(.system(size: 17))
                         .foregroundStyle(Theme.gray950)
                 }
             }
-            .frame(width: 50, height: 50)
+            .frame(width: 52, height: 52)
         }
     }
 }
 
-/// Pink inline error banner.
-struct AuthErrorBanner: View {
-    let message: String
+/// The 375x302 illustration banner + overlaid header icons.
+private struct AuthHeader: View {
+    let illustration: String
+    var showBack = false
+    var showClose = false
+    var onBack: () -> Void = {}
+    var onClose: () -> Void = {}
 
     var body: some View {
-        Text(message)
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(Theme.pink600)
-            .multilineTextAlignment(.center)
+        FigmaImage(name: illustration, placeholder: Theme.orange100)
+            .frame(height: 302)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .padding(.horizontal, 14)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.pink100))
+            .clipped()
+            .overlay(alignment: .top) {
+                HStack {
+                    if showBack {
+                        AuthHeaderIcon(asset: "IconBack", fallback: "arrow.left", action: onBack)
+                    }
+                    Spacer()
+                    if showClose {
+                        AuthHeaderIcon(asset: "IconClose", fallback: "xmark", action: onClose)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 69)
+            }
+            .ignoresSafeArea(edges: .top)
     }
 }
 
-/// Circular back button drawn over illustration headers.
-struct AuthBackButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button {
-            Haptics.tap()
-            action()
-        } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.gray950)
-                .frame(width: 38, height: 38)
-                .background(Circle().fill(Color.white.opacity(0.92)))
-        }
-    }
-}
-
-// MARK: - Sign in
+// MARK: - B000 Sign in
 
 struct SignInView: View {
     @Environment(AppState.self) private var app
-    let onCreateAccount: () -> Void
+    var onCreateAccount: () -> Void
 
     @State private var email = ""
     @State private var password = ""
-    @State private var error: String?
+
+    private var canSubmit: Bool {
+        email.contains("@") && email.contains(".") && !password.isEmpty
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                AuthHeaderIllustration()
-                    .frame(height: 280)
+        VStack(spacing: 0) {
+            AuthHeader(illustration: "AuthIllustrationSignIn")
 
-                VStack(spacing: 18) {
-                    Text("Sign in to Tiber")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.gray950)
-                        .padding(.top, 22)
+            // Title and Form (419:12986): 24 below illustration, gap 32.
+            VStack(spacing: 32) {
+                Text("Sign in to Tiber")
+                    .font(.rubik(20, .semibold))
+                    .tracking(0.2)
+                    .foregroundStyle(Theme.gray950)
 
-                    TiberField(
-                        label: "Email address",
-                        text: $email,
-                        keyboard: .emailAddress,
-                        icon: "envelope"
-                    )
-
+                VStack(spacing: 16) {
+                    TiberField(label: "Email address", text: $email, keyboard: .emailAddress)
                     VStack(alignment: .trailing, spacing: 8) {
-                        TiberField(label: "Password", text: $password, secure: true, icon: "lock")
-                        Button("Forgot password ?") {}
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.orange600)
+                        TiberField(label: "Password", text: $password, secure: true)
+                        Text("Forgot password ?")
+                            .font(.rubik(12, .medium))
+                            .tracking(0.12)
+                            .foregroundStyle(Theme.link)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-
-                    if let error {
-                        AuthErrorBanner(message: error)
-                    }
-
-                    TiberPrimaryButton(title: "Sign in") { signIn() }
-
-                    HStack(spacing: 14) {
-                        SocialCircleButton(kind: .google) { socialSignIn() }
-                        SocialCircleButton(kind: .apple) { socialSignIn() }
-                    }
-                    .padding(.top, 2)
-
-                    Text("or create a new account:")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.gray400)
-
-                    TiberOutlineButton(title: "Create account") { onCreateAccount() }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
             }
-        }
-        .background(Color.white)
-        .ignoresSafeArea(edges: .top)
-        .scrollBounceBehavior(.basedOnSize)
-    }
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
 
-    private func signIn() {
-        guard email.contains("@"), password.count >= 6 else {
-            Haptics.error()
-            error = "There was a mobile signing error. Please try again later."
-            return
-        }
-        Haptics.success()
-        app.signIn(email: email)
-    }
+            Spacer(minLength: 16)
 
-    private func socialSignIn() {
-        Haptics.success()
-        app.signIn(email: email.contains("@") ? email : "civis@tiber.app")
+            // Button Type - full with icon (586:1384)
+            VStack(spacing: 16) {
+                HStack(spacing: 12) {
+                    SocialButton(asset: "IconGoogle", fallback: "g.circle") {
+                        app.signIn(email: email.isEmpty ? "player@tiber.app" : email)
+                    }
+                    SocialButton(asset: "IconApple", fallback: "apple.logo") {
+                        app.signIn(email: email.isEmpty ? "player@tiber.app" : email)
+                    }
+                    TiberPrimaryButton(title: "Sign in", enabled: canSubmit) {
+                        app.signIn(email: email)
+                    }
+                }
+                Text("or, create a new account :")
+                    .font(.rubik(12))
+                    .tracking(0.12)
+                    .foregroundStyle(Theme.gray600)
+                TiberOutlineButton(title: "Create account", action: onCreateAccount)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 24)
+        }
+        .background(Color.white.ignoresSafeArea())
     }
 }
 
-// MARK: - Create account
+// MARK: - B100 Sign up (+ B101 error state)
 
 struct SignUpView: View {
-    let onBack: () -> Void
-    let onSubmit: (String) -> Void
+    @Environment(AppState.self) private var app
+    var onBack: () -> Void
+    var onSubmit: (String) -> Void
 
     @State private var email = ""
     @State private var password = ""
     @State private var repeatPassword = ""
-    @State private var error: String?
+    @State private var showError = false
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ZStack(alignment: .topLeading) {
-                    AuthHeaderIllustration()
-                        .frame(height: 280)
-                    AuthBackButton(action: onBack)
-                        .padding(.leading, 20)
-                        .padding(.top, 56)
+        VStack(spacing: 0) {
+            AuthHeader(illustration: "AuthIllustrationSignUp", showBack: true, onBack: onBack)
+
+            VStack(spacing: 32) {
+                Text("Create account to Tiber")
+                    .font(.rubik(20, .semibold))
+                    .tracking(0.2)
+                    .foregroundStyle(Theme.gray950)
+
+                VStack(spacing: 16) {
+                    TiberField(label: "Email address", text: $email, keyboard: .emailAddress)
+                    TiberField(label: "Password", text: $password, secure: true)
+                    TiberField(label: "Repeat password", text: $repeatPassword, secure: true)
                 }
-
-                VStack(spacing: 18) {
-                    Text("Create account to Tiber")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.gray950)
-                        .padding(.top, 22)
-
-                    TiberField(
-                        label: "Email address",
-                        text: $email,
-                        keyboard: .emailAddress,
-                        icon: "envelope"
-                    )
-                    TiberField(label: "Password", text: $password, secure: true, icon: "lock")
-                    TiberField(label: "Repeat password", text: $repeatPassword, secure: true, icon: "lock")
-
-                    if let error {
-                        AuthErrorBanner(message: error)
-                    }
-
-                    TiberPrimaryButton(title: "Create account") { submit() }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
             }
-        }
-        .background(Color.white)
-        .ignoresSafeArea(edges: .top)
-        .scrollBounceBehavior(.basedOnSize)
-    }
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
 
-    private func submit() {
-        guard email.contains("@") else {
-            Haptics.error()
-            error = "Please enter a valid email address."
-            return
+            Spacer(minLength: 16)
+
+            VStack(spacing: 16) {
+                // B101 - Sign up error banner
+                if showError {
+                    Text("There was a mistake signing up. Please try again later.")
+                        .font(.rubik(12, .medium))
+                        .tracking(0.12)
+                        .foregroundStyle(Theme.pink600)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Theme.pink50)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(Theme.pink300, lineWidth: 1)
+                                )
+                        )
+                        .transition(.opacity)
+                }
+
+                TiberPrimaryButton(title: "Create account") {
+                    let valid = email.contains("@") && email.contains(".")
+                        && !password.isEmpty && password == repeatPassword
+                    if valid {
+                        showError = false
+                        onSubmit(email)
+                    } else {
+                        withAnimation { showError = true }
+                    }
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
         }
-        guard password.count >= 6 else {
-            Haptics.error()
-            error = "Your password must be at least 6 characters long."
-            return
-        }
-        guard password == repeatPassword else {
-            Haptics.error()
-            error = "The passwords don't match. Please try again."
-            return
-        }
-        Haptics.success()
-        onSubmit(email)
+        .background(Color.white.ignoresSafeArea())
     }
 }
 
-// MARK: - Confirm registration
+// MARK: - B111/B112/B113/B114 Confirm registration
 
 struct ConfirmRegistrationView: View {
     @Environment(AppState.self) private var app
     let email: String
-    let onBack: () -> Void
+    var onBack: () -> Void
 
     @State private var code = ""
     @State private var secondsLeft = 60
-    @State private var showMismatch = false
-
-    private var codeReady: Bool { code.count >= 6 }
+    @State private var codeIncorrect = false
+    @State private var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ZStack(alignment: .topLeading) {
-                    ConfirmHeaderIllustration()
-                        .frame(height: 280)
-                    AuthBackButton(action: onBack)
-                        .padding(.leading, 20)
-                        .padding(.top, 56)
-                }
+        VStack(spacing: 0) {
+            AuthHeader(
+                illustration: "AuthIllustrationConfirm",
+                showBack: true,
+                showClose: true,
+                onBack: onBack,
+                onClose: onBack
+            )
 
-                VStack(spacing: 14) {
-                    Text("Confirm registration")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(Theme.gray950)
-                        .padding(.top, 22)
+            // Title and Form (419:13132): gap 24.
+            VStack(spacing: 24) {
+                Text("Confirm registration")
+                    .font(.rubik(20, .semibold))
+                    .tracking(0.2)
+                    .foregroundStyle(Theme.gray950)
 
-                    Text("We've sent confirmation code to your\nemail address:")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.gray500)
+                VStack(spacing: 12) {
+                    Text("We\u{2019}ve sent confirmation code to your\nemail address :")
+                        .font(.rubik(14))
+                        .tracking(0.14)
+                        .lineSpacing(14 * 0.3)
                         .multilineTextAlignment(.center)
-
-                    Text(email)
-                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Theme.gray600)
+                    Text(email.isEmpty ? "davidsilva@mail.com" : email)
+                        .font(.rubik(14, .semibold))
+                        .tracking(0.14)
                         .foregroundStyle(Theme.gray950)
-
-                    if showMismatch {
-                        Button {
-                            resend()
-                        } label: {
-                            Text("Code doesn't match. ")
-                                .foregroundStyle(Theme.pink600)
-                            + Text("Resend code?")
-                                .foregroundStyle(Theme.orange600)
-                                .underline()
-                        }
-                        .font(.system(size: 13, weight: .semibold))
-                    } else if secondsLeft > 0 {
-                        Text("Resend code in \(secondsLeft)s")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.orange600)
-                    } else {
-                        Button("Resend code") { resend() }
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.orange600)
-                    }
-
-                    TiberField(
-                        label: "Enter code",
-                        text: $code,
-                        keyboard: .numberPad
-                    )
-                    .padding(.top, 8)
-
-                    TiberPrimaryButton(title: "Confirm code", enabled: codeReady) { confirm() }
-                        .padding(.top, 6)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
+
+                resendRow
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Enter code")
+                        .font(.rubik(12))
+                        .tracking(0.12)
+                        .foregroundStyle(Theme.gray600)
+                    TextField("", text: $code)
+                        .font(.rubik(16, .semibold))
+                        .foregroundStyle(Theme.gray950)
+                        .keyboardType(.numberPad)
+                        .padding(16)
+                        .frame(height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.white)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(Theme.gray100, lineWidth: 1)
+                                )
+                        )
+                }
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+
+            Spacer(minLength: 16)
+
+            TiberPrimaryButton(title: "Confirm code", enabled: !code.isEmpty) {
+                if code.count >= 4 {
+                    app.signIn(email: email)
+                } else {
+                    withAnimation { codeIncorrect = true }
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
         }
-        .background(Color.white)
-        .ignoresSafeArea(edges: .top)
-        .scrollBounceBehavior(.basedOnSize)
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                if secondsLeft > 0 { secondsLeft -= 1 }
-            }
+        .background(Color.white.ignoresSafeArea())
+        .onReceive(timer) { _ in
+            if secondsLeft > 0 { secondsLeft -= 1 }
         }
     }
 
-    private func confirm() {
-        guard codeReady else { return }
-        // Demo build: any 6-digit code confirms the account.
-        guard code.allSatisfy(\.isNumber) else {
-            Haptics.error()
-            showMismatch = true
-            return
+    /// B111 "Resend code in 60s" / B114 "Resend code" / B113 "Code incorrect."
+    @ViewBuilder
+    private var resendRow: some View {
+        if codeIncorrect {
+            HStack(spacing: 8) {
+                Text("Code incorrect.")
+                    .font(.rubik(12, .medium))
+                    .tracking(0.12)
+                    .foregroundStyle(Theme.pink600)
+                Button {
+                    resend()
+                } label: {
+                    Text("Resend code?")
+                        .font(.rubik(12, .medium))
+                        .tracking(0.12)
+                        .underline()
+                        .foregroundStyle(Theme.link)
+                }
+            }
+        } else if secondsLeft > 0 {
+            (Text("Resend code in ")
+                .font(.rubik(12))
+                .foregroundStyle(Theme.gray600)
+             + Text("\(secondsLeft)s")
+                .font(.rubik(12, .medium))
+                .foregroundStyle(Theme.gray950))
+                .tracking(0.12)
+        } else {
+            Button {
+                resend()
+            } label: {
+                Text("Resend code")
+                    .font(.rubik(12, .medium))
+                    .tracking(0.12)
+                    .underline()
+                    .foregroundStyle(Theme.link)
+            }
         }
-        Haptics.success()
-        app.signIn(email: email)
     }
 
     private func resend() {
         Haptics.tap()
-        showMismatch = false
-        code = ""
+        codeIncorrect = false
         secondsLeft = 60
+        code = ""
     }
 }
 
-#Preview {
+#Preview("Sign in") {
     AuthFlowView()
         .environment(AppState())
 }
