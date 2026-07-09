@@ -254,19 +254,15 @@ struct SignInView: View {
         .scrollBounceBehavior(.basedOnSize)
     }
 
+    // Demo auth: any tap signs in, no validation.
     private func signIn() {
-        guard email.contains("@"), password.count >= 6 else {
-            Haptics.error()
-            error = "There was a mobile signing error. Please try again later."
-            return
-        }
         Haptics.success()
-        app.signIn(email: email)
+        app.signIn(email: email.isEmpty ? "davidsilva@mail.com" : email)
     }
 
     private func socialSignIn() {
         Haptics.success()
-        app.signIn(email: email.contains("@") ? email : "civis@tiber.app")
+        app.signIn(email: email.isEmpty ? "davidsilva@mail.com" : email)
     }
 }
 
@@ -322,24 +318,10 @@ struct SignUpView: View {
         .scrollBounceBehavior(.basedOnSize)
     }
 
+    // Demo auth: always advances to the confirmation screen.
     private func submit() {
-        guard email.contains("@") else {
-            Haptics.error()
-            error = "Please enter a valid email address."
-            return
-        }
-        guard password.count >= 6 else {
-            Haptics.error()
-            error = "Your password must be at least 6 characters long."
-            return
-        }
-        guard password == repeatPassword else {
-            Haptics.error()
-            error = "The passwords don't match. Please try again."
-            return
-        }
         Haptics.success()
-        onSubmit(email)
+        onSubmit(email.isEmpty ? "davidsilva@mail.com" : email)
     }
 }
 
@@ -354,7 +336,8 @@ struct ConfirmRegistrationView: View {
     @State private var secondsLeft = 60
     @State private var showMismatch = false
 
-    private var codeReady: Bool { code.count >= 6 }
+    // Demo auth: the button is always tappable and any code confirms.
+    private var codeReady: Bool { true }
 
     var body: some View {
         ScrollView {
@@ -429,13 +412,6 @@ struct ConfirmRegistrationView: View {
     }
 
     private func confirm() {
-        guard codeReady else { return }
-        // Demo build: any 6-digit code confirms the account.
-        guard code.allSatisfy(\.isNumber) else {
-            Haptics.error()
-            showMismatch = true
-            return
-        }
         Haptics.success()
         app.signIn(email: email)
     }

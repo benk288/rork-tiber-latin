@@ -1,5 +1,30 @@
 import SwiftUI
 
+// MARK: - Premade artwork slots
+
+/// Shows the premade illustration from the asset catalog when it has been
+/// added (e.g. exported from Figma into the named image set), otherwise
+/// renders the built-in vector fallback. Drop a PNG into the matching
+/// image set in Assets.xcassets and the screen picks it up automatically.
+struct ArtImage<Fallback: View>: View {
+    let name: String
+    @ViewBuilder var fallback: () -> Fallback
+
+    var body: some View {
+        if UIImage(named: name) != nil {
+            GeometryReader { geo in
+                Image(name)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+            }
+        } else {
+            fallback()
+        }
+    }
+}
+
 // MARK: - Layout helper
 
 /// Lays out fixed-coordinate artwork and scales it to fit (or fill) the
@@ -339,6 +364,10 @@ struct TogaFigure: View {
 /// Auth header: the emperor framed by a marble arch and red curtains.
 struct AuthHeaderIllustration: View {
     var body: some View {
+        ArtImage(name: "AuthHeaderArt") { drawn }
+    }
+
+    private var drawn: some View {
         DesignCanvas(design: CGSize(width: 390, height: 300), fill: true) {
             Rectangle().fill(Theme.orange50)
             // Arch window
@@ -388,6 +417,10 @@ struct ConfirmHeaderIllustration: View {
     private let panel = Color(hex: "6E70A3")
 
     var body: some View {
+        ArtImage(name: "ConfirmHeaderArt") { drawn }
+    }
+
+    private var drawn: some View {
         DesignCanvas(design: CGSize(width: 390, height: 300), fill: true) {
             Rectangle().fill(wall)
             Rectangle().fill(floor).frame(width: 390, height: 58).offset(y: 121)
@@ -445,11 +478,13 @@ struct OnboardingIllustration: View {
     let page: Int
 
     var body: some View {
-        switch page {
-        case 0: throneScene
-        case 1: coinsScene
-        case 2: tribesScene
-        default: onlineScene
+        ArtImage(name: "OnboardingArt\(page + 1)") {
+            switch page {
+            case 0: throneScene
+            case 1: coinsScene
+            case 2: tribesScene
+            default: onlineScene
+            }
         }
     }
 

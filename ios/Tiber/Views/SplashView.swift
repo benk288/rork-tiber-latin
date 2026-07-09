@@ -5,6 +5,11 @@ struct SplashView: View {
     @State private var appeared = false
 
     var body: some View {
+        ArtImage(name: "SplashArt") { drawn }
+            .ignoresSafeArea()
+    }
+
+    private var drawn: some View {
         ZStack {
             LinearGradient(
                 colors: [Theme.orange300, Theme.orange500, Theme.orange700],

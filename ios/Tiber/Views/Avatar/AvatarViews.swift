@@ -365,14 +365,14 @@ struct AvatarCreatorView: View {
 
     private var previewCard: some View {
         ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.orange100, Theme.orange300],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+            ArtImage(name: "AvatarStageArt") {
+                LinearGradient(
+                    colors: [Theme.orange100, Theme.orange300],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24))
 
             AvatarView(config: config)
                 .frame(height: 250)

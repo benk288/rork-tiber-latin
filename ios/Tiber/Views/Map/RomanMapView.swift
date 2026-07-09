@@ -12,6 +12,25 @@ struct RomanMapView: View {
         GeometryReader { geo in
             let size = geo.size
             ZStack {
+                ArtImage(name: "MapArt") { drawnScenery(size: size) }
+
+                // Level stops
+                ForEach(AcademyLevel.allCases) { level in
+                    MapLevelPill(
+                        level: level,
+                        isSelected: level == selected,
+                        isUnlocked: app.isUnlocked(level)
+                    ) {
+                        onSelect(level)
+                    }
+                    .position(position(for: level, in: size))
+                }
+            }
+        }
+    }
+
+    private func drawnScenery(size: CGSize) -> some View {
+            ZStack {
                 // Terrain
                 LinearGradient(
                     colors: [Theme.yellow300, Theme.orange300, Theme.orange400],
@@ -75,20 +94,7 @@ struct RomanMapView: View {
                 TreeView().frame(width: 26, height: 48).position(pt(0.1, 0.86, size))
                 TreeView().frame(width: 30, height: 56).position(pt(0.88, 0.9, size))
                 TreeView().frame(width: 24, height: 44).position(pt(0.3, 0.48, size))
-
-                // Level stops
-                ForEach(AcademyLevel.allCases) { level in
-                    MapLevelPill(
-                        level: level,
-                        isSelected: level == selected,
-                        isUnlocked: app.isUnlocked(level)
-                    ) {
-                        onSelect(level)
-                    }
-                    .position(position(for: level, in: size))
-                }
             }
-        }
     }
 
     private var bridge: some View {
