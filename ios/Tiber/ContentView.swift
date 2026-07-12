@@ -36,9 +36,9 @@ struct ContentView: View {
 
 enum MainTab: String, CaseIterable, Identifiable {
     case home = "Home"
-    case leaderboard = "Leaderboard"
-    case tutorials = "Tutorials"
-    case tracker = "Tracker"
+    case codex = "Codex"
+    case practice = "Practice"
+    case badges = "Badges"
     case settings = "Settings"
 
     var id: String { rawValue }
@@ -47,9 +47,9 @@ enum MainTab: String, CaseIterable, Identifiable {
     var asset: String {
         switch self {
         case .home: return "TabIconHome"
-        case .leaderboard: return "TabIconLeaderboard"
-        case .tutorials: return "TabIconTutorials"
-        case .tracker: return "TabIconTracker"
+        case .codex: return "TabIconTutorials"
+        case .practice: return "TabIconTracker"
+        case .badges: return "TabIconLeaderboard"
         case .settings: return "TabIconSettings"
         }
     }
@@ -57,9 +57,9 @@ enum MainTab: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .home: return "house.fill"
-        case .leaderboard: return "trophy.fill"
-        case .tutorials: return "book.closed.fill"
-        case .tracker: return "chart.bar.fill"
+        case .codex: return "book.closed.fill"
+        case .practice: return "figure.run"
+        case .badges: return "medal.fill"
         case .settings: return "gearshape.fill"
         }
     }
@@ -76,12 +76,12 @@ struct MainTabView: View {
                 switch tab {
                 case .home:
                     HomeView(onAvatarTap: { showAvatarCreator = true })
-                case .leaderboard:
-                    RewardsView()
-                case .tutorials:
+                case .codex:
                     CodexView()
-                case .tracker:
-                    ParentDashboardView()
+                case .practice:
+                    PracticeView()
+                case .badges:
+                    RewardsView()
                 case .settings:
                     SettingsView()
                 }

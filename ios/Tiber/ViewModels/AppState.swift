@@ -55,12 +55,34 @@ final class AppState {
         progress.stars[level.rawValue] ?? 0
     }
 
+    /// Path order: Basilica (Beginner) -> Colosseum (Elementary) -> Forum (Intermediate).
     func isUnlocked(_ level: AcademyLevel) -> Bool {
         switch level {
-        case .forum: return true
-        case .basilica: return stars(for: .forum) >= 1
+        case .basilica: return true
         case .colosseum: return stars(for: .basilica) >= 1
+        case .forum: return stars(for: .colosseum) >= 1
         }
+    }
+
+    /// The node where the knight stands: the first level not yet completed,
+    /// or the last level once everything is done.
+    var currentNode: AcademyLevel {
+        AcademyLevel.pathOrder.first(where: { stars(for: $0) == 0 }) ?? AcademyLevel.pathOrder.last!
+    }
+
+    /// Records a finished mini-game: stars from hearts remaining, coins
+    /// banked, and the level's vocabulary added to the codex.
+    func completeLevel(_ level: AcademyLevel, heartsRemaining: Int, coinsEarned: Int) -> Int {
+        let earned = max(1, min(3, heartsRemaining))
+        if earned > stars(for: level) {
+            progress.stars[level.rawValue] = earned
+        }
+        progress.coins += coinsEarned
+        for word in CiceroCurriculum.vocab(for: level) {
+            progress.collectedWords.insert(word.latin)
+        }
+        checkAchievements()
+        return earned
     }
 
     var dailyChallengeCompletedToday: Bool {

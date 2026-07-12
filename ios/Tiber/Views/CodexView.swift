@@ -1,223 +1,131 @@
 import SwiftUI
 
-/// The collectible vocabulary codex: every word mastered joins the treasury.
+/// Screen 5 - Codex: a grid of collected vocabulary cards. Words the player
+/// has not earned yet appear as locked silhouettes.
 struct CodexView: View {
     @Environment(AppState.self) private var app
 
-    @State private var selectedWord: LatinWord?
-
-    private let columns = [GridItem(.adaptive(minimum: 105), spacing: 12)]
-
     private var collected: Int {
-        LatinContent.nouns.filter { (app.progress.mastery[$0.latin] ?? 0) > 0 }.count
+        CiceroCurriculum.vocabulary.filter { app.progress.collectedWords.contains($0.latin) }.count
     }
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.creamGradient.ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 18) {
-                        codexHeader
-
-                        LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(LatinContent.nouns) { word in
-                                wordTile(word)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
-                    }
-                    .padding(.top, 8)
-                }
-            }
-            .navigationTitle("Codex")
-            .sheet(item: $selectedWord) { word in
-                WordDetailSheet(word: word)
-                    .presentationDetents([.medium, .large])
-                    .presentationContentInteraction(.scrolls)
-            }
-        }
-    }
-
-    private var codexHeader: some View {
-        VStack(spacing: 10) {
-            HStack {
-                Image(systemName: "book.closed.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Theme.gold)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Verba Collecta")
-                        .font(app.font(18, weight: .heavy))
-                        .foregroundStyle(Theme.ink)
-                    Text("\(collected) of \(LatinContent.nouns.count) words collected")
-                        .font(app.font(13))
-                        .foregroundStyle(Theme.brown)
-                }
-                Spacer()
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Theme.sand.opacity(0.5))
-                    Capsule()
-                        .fill(LinearGradient(colors: [Theme.gold, Theme.orange], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: max(10, geo.size.width * Double(collected) / Double(max(1, LatinContent.nouns.count))))
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: collected)
-                }
-            }
-            .frame(height: 12)
-        }
-        .padding(16)
-        .background(RoundedRectangle(cornerRadius: 22).fill(Theme.cream).shadow(color: Theme.rust.opacity(0.15), radius: 8, y: 4))
-        .padding(.horizontal, 16)
-    }
-
-    private func wordTile(_ word: LatinWord) -> some View {
-        let mastery = app.progress.mastery[word.latin] ?? 0
-        let isCollected = mastery > 0
-        return Button {
-            guard isCollected else {
-                Haptics.error()
-                return
-            }
-            Haptics.tap()
-            selectedWord = word
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: isCollected ? word.symbol : "questionmark")
-                    .font(.system(size: 26))
-                    .foregroundStyle(isCollected ? Theme.terracotta : Theme.sand)
-                    .frame(height: 32)
-                Text(isCollected ? word.latin : "???")
-                    .font(app.font(15, weight: .bold))
-                    .foregroundStyle(isCollected ? Theme.ink : Theme.brown.opacity(0.4))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                if isCollected {
-                    HStack(spacing: 2) {
-                        ForEach(0..<3, id: \.self) { i in
-                            Circle()
-                                .fill(i < min(mastery, 3) ? Theme.gold : Theme.sand.opacity(0.5))
-                                .frame(width: 6, height: 6)
-                        }
-                    }
-                } else {
-                    Text(word.category.endingLabel)
-                        .font(app.font(11, weight: .semibold))
-                        .foregroundStyle(Theme.brown.opacity(0.4))
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: app.progress.largeTouchTargets ? 118 : 104)
-            .background(
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(isCollected ? Theme.cream : Theme.parchment.opacity(0.6))
-                    .shadow(color: isCollected ? Theme.rust.opacity(0.18) : .clear, radius: 6, y: 3)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18)
-                    .strokeBorder(isCollected ? Theme.gold.opacity(0.6) : Theme.sand.opacity(0.6), lineWidth: 1.5)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Word detail
-
-private struct WordDetailSheet: View {
-    @Environment(AppState.self) private var app
-    let word: LatinWord
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
-                Capsule()
-                    .fill(Theme.sand)
-                    .frame(width: 40, height: 5)
-                    .padding(.top, 10)
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Codex")
+                    .font(.rubik(24, .semibold))
+                    .foregroundStyle(Theme.gray950)
+                    .padding(.top, 12)
 
-                Image(systemName: word.symbol)
-                    .font(.system(size: 52))
-                    .foregroundStyle(Theme.terracotta)
-                    .padding(26)
-                    .background(Circle().fill(Theme.parchment))
-                    .overlay(Circle().strokeBorder(Theme.gold, lineWidth: 3))
-
-                VStack(spacing: 6) {
-                    HStack(spacing: 10) {
-                        Text(word.latin)
-                            .font(app.font(34, weight: .heavy))
-                            .foregroundStyle(Theme.ink)
-                        Button {
-                            Haptics.tap()
-                            SpeechService.shared.speak(word.latin, slow: true)
-                        } label: {
-                            Image(systemName: "speaker.wave.2.fill")
-                                .font(.system(size: 18))
-                                .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Circle().fill(Theme.orange))
-                        }
-                    }
-                    Text(word.meaning)
-                        .font(app.font(19))
-                        .foregroundStyle(Theme.brown)
-                }
-
-                HStack(spacing: 10) {
-                    infoChip(label: "Genitive", value: word.genitive)
-                    infoChip(label: "Group", value: word.category.endingLabel)
-                    infoChip(label: "Mastery", value: "\(min(app.progress.mastery[word.latin] ?? 0, 99))")
-                }
-
+                // Collection progress
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Example")
-                        .font(app.font(13, weight: .bold))
-                        .foregroundStyle(Theme.terracotta)
-                        .textCase(.uppercase)
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(word.example)
-                                .font(app.font(18, weight: .semibold))
-                                .foregroundStyle(Theme.ink)
-                            Text(word.exampleMeaning)
-                                .font(app.font(15))
-                                .foregroundStyle(Theme.brown)
-                        }
-                        Spacer()
-                        Button {
-                            Haptics.tap()
-                            SpeechService.shared.speak(word.example)
-                        } label: {
-                            Image(systemName: "play.circle.fill")
-                                .font(.system(size: 34))
-                                .foregroundStyle(Theme.orange)
+                    Text("\(collected) of \(CiceroCurriculum.vocabulary.count) words collected")
+                        .font(.rubik(13))
+                        .foregroundStyle(Theme.gray600)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Theme.gray100)
+                            Capsule()
+                                .fill(Theme.primary)
+                                .frame(width: max(10, geo.size.width * Double(collected) / Double(max(1, CiceroCurriculum.vocabulary.count))))
                         }
                     }
-                    .padding(14)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Theme.parchment))
+                    .frame(height: 10)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
+                .padding(16)
+                .background(RoundedRectangle(cornerRadius: 16).fill(Color.white))
+
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                    spacing: 12
+                ) {
+                    ForEach(CiceroCurriculum.vocabulary) { word in
+                        if app.progress.collectedWords.contains(word.latin) {
+                            collectedCard(word)
+                        } else {
+                            lockedCard(word)
+                        }
+                    }
+                }
+                .padding(.bottom, 130)
             }
+            .padding(.horizontal, 20)
         }
-        .background(Theme.cream)
+        .background(Theme.cream.ignoresSafeArea())
     }
 
-    private func infoChip(label: String, value: String) -> some View {
-        VStack(spacing: 3) {
-            Text(label)
-                .font(app.font(11, weight: .semibold))
-                .foregroundStyle(Theme.brown.opacity(0.7))
-            Text(value)
-                .font(app.font(16, weight: .bold))
-                .foregroundStyle(Theme.ink)
+    private func collectedCard(_ word: VocabWord) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(word.latin)
+                    .font(.rubik(17, .semibold))
+                    .foregroundStyle(Theme.gray950)
+                Spacer()
+                SpeakerButton(text: word.latin, size: 14)
+            }
+            Text(word.english)
+                .font(.rubik(14))
+                .foregroundStyle(Theme.gray600)
+            Text(word.detail)
+                .font(.rubik(11, .medium))
+                .foregroundStyle(Theme.orange500)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(Theme.orange100))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Capsule().fill(Theme.parchment))
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.white))
     }
+
+    private func lockedCard(_ word: VocabWord) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(Theme.gray300)
+            // Silhouette of the hidden word.
+            Text(String(repeating: "\u{25AA}", count: min(6, word.latin.count)))
+                .font(.rubik(14))
+                .foregroundStyle(Theme.gray200)
+            Text(word.level.rank)
+                .font(.rubik(11))
+                .foregroundStyle(Theme.gray300)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 96)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Theme.gray50)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Theme.gray100, style: StrokeStyle(lineWidth: 1, dash: [5]))
+                )
+        )
+    }
+}
+
+/// Simple placeholder for the Practice tab.
+struct PracticeView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "figure.run")
+                .font(.system(size: 44))
+                .foregroundStyle(Theme.orange400)
+            Text("Practice")
+                .font(.rubik(22, .semibold))
+                .foregroundStyle(Theme.gray950)
+            Text("Coming soon! Daily drills with Cicero.")
+                .font(.rubik(15))
+                .foregroundStyle(Theme.gray600)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .background(Theme.cream.ignoresSafeArea())
+    }
+}
+
+#Preview {
+    CodexView()
+        .environment(AppState())
 }
