@@ -40,13 +40,14 @@ struct LevelFlowView: View {
                 ConjugationGameView(
                     questions: CiceroCurriculum.basilicaQuestions,
                     onFinish: { heartsLeft, coinsEarned in
-                        let stars = app.completeLevel(level, heartsRemaining: heartsLeft, coinsEarned: coinsEarned)
-                        withAnimation { stage = .complete(stars: stars, coins: coinsEarned) }
+                        let result = app.completeLevel(level, heartsRemaining: heartsLeft, coinsEarned: coinsEarned)
+                        withAnimation { stage = .complete(stars: result.stars, coins: result.coinsBanked) }
                     },
                     onFail: {
                         withAnimation { stage = .failed }
                     },
-                    onQuit: { onDismiss(false) }
+                    onQuit: { onDismiss(false) },
+                    onMiss: { app.recordMiss($0) }
                 )
                 .id(gameID)
                 .transition(.opacity)
@@ -109,6 +110,7 @@ struct SpeakerButton: View {
                 .frame(width: size + 12, height: size + 12)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Hear \(text) pronounced")
     }
 }
 
@@ -244,19 +246,26 @@ struct CiceroIntroView: View {
 
 struct ConjugationGameView: View {
     let questions: [ConjugationQuestion]
+    var coinsPerCorrect = 10
+    var timeLimit = 60
     var onFinish: (_ heartsLeft: Int, _ coinsEarned: Int) -> Void
     var onFail: () -> Void
     var onQuit: () -> Void
+    /// Called on each wrong answer so mistakes feed spaced repetition.
+    var onMiss: (ConjugationQuestion) -> Void = { _ in }
+    /// Called on each correct answer (Practice uses it to soften miss counts).
+    var onHit: (ConjugationQuestion) -> Void = { _ in }
 
     @State private var index = 0
     @State private var hearts = 3
     @State private var coins = 0
-    @State private var timeLeft = 60
+    @State private var timeLeft: Int = -1
     @State private var picked: String?
     @State private var showRule: String?
     @State private var goldFlash = false
     @State private var toast: String?
     @State private var locked = false
+    @State private var finished = false
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var question: ConjugationQuestion { questions[index] }
@@ -343,11 +352,18 @@ struct ConjugationGameView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }
+        .onAppear {
+            if timeLeft < 0 { timeLeft = timeLimit }
+        }
         .onReceive(timer) { _ in
-            guard timeLeft > 0 else { return }
+            // The clock pauses while Cicero is explaining or celebrating -
+            // being corrected never costs the player time.
+            guard !finished, !locked, timeLeft > 0 else { return }
             timeLeft -= 1
             if timeLeft == 0 {
+                finished = true
                 Haptics.error()
+                SoundService.shared.play(.wrong)
                 onFail()
             }
         }
@@ -383,11 +399,12 @@ struct ConjugationGameView: View {
             HStack(spacing: 4) {
                 Image(systemName: "timer")
                     .font(.system(size: 13, weight: .semibold))
-                Text("\(timeLeft)s")
+                Text("\(timeLeft < 0 ? timeLimit : timeLeft)s")
                     .font(.rubik(13, .semibold))
                     .monospacedDigit()
             }
-            .foregroundStyle(timeLeft <= 10 ? Theme.pink600 : Theme.gray950)
+            .foregroundStyle(timeLeft >= 0 && timeLeft <= 10 ? Theme.pink600 : Theme.gray950)
+            .accessibilityLabel("Time remaining \(timeLeft < 0 ? timeLimit : timeLeft) seconds")
 
             Button {
                 Haptics.tap()
@@ -438,19 +455,22 @@ struct ConjugationGameView: View {
         }
         .buttonStyle(.plain)
         .disabled(locked)
+        .accessibilityLabel("Answer \(option)")
     }
 
     private func choose(_ option: String) {
-        guard !locked else { return }
+        guard !locked, !finished else { return }
         locked = true
         picked = option
 
         if option == question.answer {
             Haptics.success()
-            coins += 10
+            SoundService.shared.play(.correct)
+            onHit(question)
+            coins += coinsPerCorrect
             withAnimation(.easeOut(duration: 0.15)) {
                 goldFlash = true
-                toast = "Optime!  +10"
+                toast = "Optime!  +\(coinsPerCorrect)"
             }
             Task {
                 try? await Task.sleep(for: .milliseconds(900))
@@ -462,14 +482,18 @@ struct ConjugationGameView: View {
             }
         } else {
             Haptics.error()
+            SoundService.shared.play(.wrong)
+            onMiss(question)
             hearts -= 1
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 showRule = question.rule
             }
             Task {
                 try? await Task.sleep(for: .seconds(2.2))
+                guard !finished else { return }
                 withAnimation { showRule = nil }
                 if hearts <= 0 {
+                    finished = true
                     onFail()
                 } else {
                     nextQuestion()
@@ -479,7 +503,9 @@ struct ConjugationGameView: View {
     }
 
     private func nextQuestion() {
+        guard !finished else { return }
         if index + 1 >= questions.count {
+            finished = true
             onFinish(hearts, coins)
         } else {
             withAnimation(.easeInOut(duration: 0.25)) {
@@ -521,20 +547,26 @@ struct LevelCompleteView: View {
                     }
                 }
 
-                HStack(spacing: 8) {
-                    if UIImage(named: "HudCoin") != nil {
-                        Image("HudCoin").resizable().scaledToFit().frame(width: 24, height: 24)
-                    } else {
-                        Image(systemName: "circlebadge.2.fill")
-                            .foregroundStyle(Theme.playCTA)
+                if coins > 0 {
+                    HStack(spacing: 8) {
+                        if UIImage(named: "HudCoin") != nil {
+                            Image("HudCoin").resizable().scaledToFit().frame(width: 24, height: 24)
+                        } else {
+                            Image(systemName: "circlebadge.2.fill")
+                                .foregroundStyle(Theme.playCTA)
+                        }
+                        Text("+\(coins) coins")
+                            .font(.rubik(16, .semibold))
+                            .foregroundStyle(Theme.gray950)
                     }
-                    Text("+\(coins) coins")
-                        .font(.rubik(16, .semibold))
-                        .foregroundStyle(Theme.gray950)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(Color.white))
+                } else {
+                    Text("Repetitio mater studiorum - practice makes perfect!")
+                        .font(.rubik(13))
+                        .foregroundStyle(Theme.gray600)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(Capsule().fill(Color.white))
 
                 // New vocabulary
                 VStack(alignment: .leading, spacing: 12) {
@@ -603,13 +635,80 @@ struct LevelCompleteView: View {
             .padding(.horizontal, 24)
         }
         .background(Theme.cream.ignoresSafeArea())
+        .overlay(ConfettiView().allowsHitTesting(false))
         .task {
+            SoundService.shared.play(.fanfare)
             for star in 1...max(1, stars) {
                 try? await Task.sleep(for: .milliseconds(450))
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) {
                     shownStars = star
                 }
                 Haptics.success()
+                SoundService.shared.play(.star)
+            }
+        }
+    }
+}
+
+/// Lightweight celebratory confetti: gold, terracotta and cream flecks that
+/// tumble down for a few seconds after the screen appears.
+struct ConfettiView: View {
+    private struct Fleck {
+        let x: Double        // 0...1 horizontal position
+        let delay: Double
+        let speed: Double    // fall duration
+        let size: Double
+        let spin: Double
+        let color: Color
+    }
+
+    private let flecks: [Fleck] = {
+        let palette: [Color] = [
+            Theme.playCTA, Theme.orange400, Theme.orange500,
+            Theme.pink400, Theme.orange100, Theme.maroon
+        ]
+        return (0..<36).map { i in
+            Fleck(
+                x: Double.random(in: 0.02...0.98),
+                delay: Double.random(in: 0...0.8),
+                speed: Double.random(in: 2.2...3.6),
+                size: Double.random(in: 6...11),
+                spin: Double.random(in: 2...6) * (Bool.random() ? 1 : -1),
+                color: palette[i % palette.count]
+            )
+        }
+    }()
+
+    @State private var start = Date()
+
+    var body: some View {
+        TimelineView(.animation) { context in
+            let elapsed = context.date.timeIntervalSince(start)
+            Canvas { canvas, size in
+                for fleck in flecks {
+                    let t = elapsed - fleck.delay
+                    guard t > 0, t < fleck.speed else { continue }
+                    let progress = t / fleck.speed
+                    let y = progress * (size.height + 40) - 20
+                    let wobble = sin(t * 5 + fleck.x * 20) * 14
+                    let rect = CGRect(
+                        x: fleck.x * size.width + wobble,
+                        y: y,
+                        width: fleck.size,
+                        height: fleck.size * 0.62
+                    )
+                    var ctx = canvas
+                    ctx.translateBy(x: rect.midX, y: rect.midY)
+                    ctx.rotate(by: .radians(t * fleck.spin))
+                    ctx.opacity = progress > 0.85 ? (1 - progress) / 0.15 : 1
+                    ctx.fill(
+                        Path(roundedRect: CGRect(
+                            x: -rect.width / 2, y: -rect.height / 2,
+                            width: rect.width, height: rect.height
+                        ), cornerRadius: 1.5),
+                        with: .color(fleck.color)
+                    )
+                }
             }
         }
     }

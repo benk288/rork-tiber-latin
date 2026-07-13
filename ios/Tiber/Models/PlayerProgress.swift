@@ -127,6 +127,10 @@ struct SavedProgress: Codable {
     var mastery: [String: Int] = [:]
     /// Latin dictionary forms collected into the codex.
     var collectedWords: Set<String> = []
+    /// The last calendar day the player completed a level (streak tracking).
+    var lastStreakDay: Date?
+    /// Question sentence -> times missed; drives spaced-repetition Practice.
+    var missedSentences: [String: Int] = [:]
     var sessions: [GameSession] = []
     var unlockedAchievements: Set<String> = []
     var lastDailyChallenge: Date?
@@ -155,6 +159,8 @@ struct SavedProgress: Codable {
         stars = try c.decodeIfPresent([String: Int].self, forKey: .stars) ?? [:]
         mastery = try c.decodeIfPresent([String: Int].self, forKey: .mastery) ?? [:]
         collectedWords = try c.decodeIfPresent(Set<String>.self, forKey: .collectedWords) ?? []
+        lastStreakDay = try c.decodeIfPresent(Date.self, forKey: .lastStreakDay)
+        missedSentences = try c.decodeIfPresent([String: Int].self, forKey: .missedSentences) ?? [:]
         sessions = try c.decodeIfPresent([GameSession].self, forKey: .sessions) ?? []
         unlockedAchievements = try c.decodeIfPresent(Set<String>.self, forKey: .unlockedAchievements) ?? []
         lastDailyChallenge = try c.decodeIfPresent(Date.self, forKey: .lastDailyChallenge)

@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// Root flow: Splash -> Tutorial -> Sign in -> Main tabs.
+/// Root flow: Splash -> Tutorial -> straight into the game.
+/// No accounts: a kids' app should play instantly (and the Kids Category
+/// prohibits third-party sign-in without a parental gate).
 struct ContentView: View {
     @Environment(AppState.self) private var app
     @State private var splashDone = false
@@ -13,9 +15,6 @@ struct ContentView: View {
             } else if !app.progress.hasOnboarded {
                 OnboardingView()
                     .transition(.opacity)
-            } else if !app.progress.isSignedIn {
-                AuthFlowView()
-                    .transition(.opacity)
             } else {
                 MainTabView()
                     .transition(.opacity)
@@ -23,7 +22,6 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.35), value: splashDone)
         .animation(.easeInOut(duration: 0.35), value: app.progress.hasOnboarded)
-        .animation(.easeInOut(duration: 0.35), value: app.progress.isSignedIn)
         .task {
             TiberFont.registerIfNeeded()
             try? await Task.sleep(for: .seconds(2))

@@ -71,18 +71,53 @@ final class AppState {
     }
 
     /// Records a finished mini-game: stars from hearts remaining, coins
-    /// banked, and the level's vocabulary added to the codex.
-    func completeLevel(_ level: AcademyLevel, heartsRemaining: Int, coinsEarned: Int) -> Int {
+    /// banked (first completion only, so replays can't be farmed), the
+    /// level's vocabulary added to the codex, and the daily streak advanced.
+    /// Returns the stars earned and the coins actually banked.
+    func completeLevel(_ level: AcademyLevel, heartsRemaining: Int, coinsEarned: Int) -> (stars: Int, coinsBanked: Int) {
         let earned = max(1, min(3, heartsRemaining))
+        let firstCompletion = stars(for: level) == 0
         if earned > stars(for: level) {
             progress.stars[level.rawValue] = earned
         }
-        progress.coins += coinsEarned
+        let banked = firstCompletion ? coinsEarned : 0
+        progress.coins += banked
         for word in CiceroCurriculum.vocab(for: level) {
             progress.collectedWords.insert(word.latin)
         }
+        advanceStreak()
         checkAchievements()
-        return earned
+        return (earned, banked)
+    }
+
+    /// One amphora per calendar day with a completed level; consecutive days
+    /// grow the streak.
+    private func advanceStreak() {
+        let calendar = Calendar.current
+        if let last = progress.lastStreakDay, calendar.isDateInToday(last) { return }
+        if let last = progress.lastStreakDay, calendar.isDateInYesterday(last) {
+            progress.streak += 1
+        } else {
+            progress.streak = 1
+        }
+        progress.amphorae += 1
+        progress.lastStreakDay = Date()
+    }
+
+    /// Remembers a missed question so Practice can resurface it.
+    func recordMiss(_ question: ConjugationQuestion) {
+        progress.missedSentences[question.sentence, default: 0] += 1
+    }
+
+    /// Practice went well: soften the miss count for the question.
+    func recordPracticeHit(_ question: ConjugationQuestion) {
+        if let count = progress.missedSentences[question.sentence] {
+            if count <= 1 {
+                progress.missedSentences.removeValue(forKey: question.sentence)
+            } else {
+                progress.missedSentences[question.sentence] = count - 1
+            }
+        }
     }
 
     var dailyChallengeCompletedToday: Bool {

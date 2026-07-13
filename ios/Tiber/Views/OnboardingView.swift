@@ -9,18 +9,36 @@ struct OnboardingView: View {
     private struct TutorialPage {
         let image: String
         let title: String
+        let body1: String
+        let body2: String
     }
 
     private let pages: [TutorialPage] = [
-        TutorialPage(image: "TutorialWelcome", title: "Welcome to Tiber"),
-        TutorialPage(image: "TutorialCoins", title: "Tiber coins"),
-        TutorialPage(image: "TutorialTribes", title: "Tribes"),
-        TutorialPage(image: "TutorialOnline", title: "Online feature")
+        TutorialPage(
+            image: "TutorialWelcome",
+            title: "Welcome to Tiber",
+            body1: "Salve! Marcus Tullius Cicero - Rome's greatest speaker - has taken you on as his newest pupil.",
+            body2: "Climb the winding road through ancient Rome. Every landmark hides a mini-game, and every game teaches you real Latin."
+        ),
+        TutorialPage(
+            image: "TutorialCoins",
+            title: "Tiber coins",
+            body1: "Answer well and you earn coins - ten for every correct answer on your first climb through a level.",
+            body2: "Hearts are your tries: three per challenge. Run out, and Cicero simply dusts you off for another attempt."
+        ),
+        TutorialPage(
+            image: "TutorialTribes",
+            title: "Your codex",
+            body1: "Every word you master joins your codex - a growing treasury of Latin with meanings and pronunciation.",
+            body2: "Tap the speaker on any word to hear it aloud, the way a Roman might have said it."
+        ),
+        TutorialPage(
+            image: "TutorialOnline",
+            title: "Play every day",
+            body1: "Complete a level each day to grow your amphora streak - Rome was not built in a day, and neither is Latin.",
+            body2: "The Practice arena remembers what tripped you up and serves it back until it sticks. Age - let us begin!"
+        )
     ]
-
-    // Copy from the design file (566:2424 / 566:2425).
-    private let paragraph1 = "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo con. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatu"
-    private let paragraph2 = "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id es. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatu"
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -49,8 +67,8 @@ struct OnboardingView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(paragraph1)
-                        Text(paragraph2)
+                        Text(pages[page].body1)
+                        Text(pages[page].body2)
                     }
                     .font(.rubik(14))
                     .tracking(0.14)

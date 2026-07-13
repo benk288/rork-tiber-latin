@@ -16,7 +16,7 @@ struct SettingsView: View {
                             Text(app.progress.playerName)
                                 .font(app.font(18, weight: .heavy))
                                 .foregroundStyle(Theme.ink)
-                            Text(app.progress.email.isEmpty ? "Citizen of Tiber" : app.progress.email)
+                            Text("Citizen of Tiber")
                                 .font(app.font(13))
                                 .foregroundStyle(Theme.brown)
                         }
@@ -63,12 +63,7 @@ struct SettingsView: View {
                 .listRowBackground(Theme.cream)
 
                 Section {
-                    Button {
-                        dismiss()
-                        app.signOut()
-                    } label: {
-                        settingLabel(symbol: "rectangle.portrait.and.arrow.right", title: "Sign out", detail: "Return to the sign-in screen")
-                    }
+                    settingLabel(symbol: "laurel.leading", title: "Cicero's Roman Academy", detail: "Made for young scholars, ages 8 and up")
                 }
                 .listRowBackground(Theme.cream)
             }

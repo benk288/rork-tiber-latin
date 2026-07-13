@@ -36,78 +36,78 @@ enum CiceroCurriculum {
         ConjugationQuestion(
             sentence: "Ego aquam ___.",
             english: "I carry water.",
-            options: ["porto", "portas", "portat", "portant"],
-            answer: "porto",
-            rule: "Not quite - first person singular takes -o.",
-            vocabLatin: "porto"
+            options: ["portō", "portās", "portat", "portant"],
+            answer: "portō",
+            rule: "Not quite - first person singular takes -ō.",
+            vocabLatin: "portō"
         ),
         ConjugationQuestion(
-            sentence: "Tu viam ___.",
+            sentence: "Tū viam ___.",
             english: "You watch the road.",
-            options: ["specto", "spectas", "spectat", "spectamus"],
-            answer: "spectas",
+            options: ["spectō", "spectās", "spectat", "spectāmus"],
+            answer: "spectās",
             rule: "Not quite - second person singular takes -s.",
-            vocabLatin: "specto"
+            vocabLatin: "spectō"
         ),
         ConjugationQuestion(
             sentence: "Puella rosam ___.",
             english: "The girl loves the rose.",
-            options: ["amo", "amas", "amat", "amant"],
+            options: ["amō", "amās", "amat", "amant"],
             answer: "amat",
             rule: "Not quite - third person singular takes -t.",
-            vocabLatin: "amo"
+            vocabLatin: "amō"
         ),
         ConjugationQuestion(
-            sentence: "Nos patriam ___.",
+            sentence: "Nōs patriam ___.",
             english: "We love our homeland.",
-            options: ["amo", "amamus", "amatis", "amant"],
-            answer: "amamus",
+            options: ["amō", "amāmus", "amātis", "amant"],
+            answer: "amāmus",
             rule: "Not quite - first person plural takes -mus.",
             vocabLatin: "patria"
         ),
         ConjugationQuestion(
-            sentence: "Vos magistrum ___.",
+            sentence: "Vōs magistrum ___.",
             english: "You all praise the teacher.",
-            options: ["laudo", "laudas", "laudatis", "laudant"],
-            answer: "laudatis",
+            options: ["laudō", "laudās", "laudātis", "laudant"],
+            answer: "laudātis",
             rule: "Not quite - second person plural takes -tis.",
-            vocabLatin: "laudo"
+            vocabLatin: "laudō"
         ),
         ConjugationQuestion(
-            sentence: "Pueri in via ___.",
+            sentence: "Puerī in viā ___.",
             english: "The boys walk in the road.",
-            options: ["ambulo", "ambulat", "ambulamus", "ambulant"],
+            options: ["ambulō", "ambulat", "ambulāmus", "ambulant"],
             answer: "ambulant",
             rule: "Not quite - third person plural takes -nt.",
-            vocabLatin: "ambulo"
+            vocabLatin: "ambulō"
         ),
         ConjugationQuestion(
             sentence: "Ego Ciceronem ___.",
             english: "I praise Cicero.",
-            options: ["laudo", "laudas", "laudat", "laudamus"],
-            answer: "laudo",
-            rule: "Not quite - first person singular takes -o.",
-            vocabLatin: "laudo"
+            options: ["laudō", "laudās", "laudat", "laudāmus"],
+            answer: "laudō",
+            rule: "Not quite - first person singular takes -ō.",
+            vocabLatin: "laudō"
         ),
         ConjugationQuestion(
-            sentence: "Tu nautam ___.",
+            sentence: "Tū nautam ___.",
             english: "You call the sailor.",
-            options: ["voco", "vocas", "vocat", "vocant"],
-            answer: "vocas",
+            options: ["vocō", "vocās", "vocat", "vocant"],
+            answer: "vocās",
             rule: "Not quite - second person singular takes -s.",
-            vocabLatin: "voco"
+            vocabLatin: "vocō"
         )
     ]
 
     // MARK: - Codex vocabulary
 
     static let vocabulary: [VocabWord] = [
-        VocabWord(latin: "porto", english: "I carry", detail: "1st conjugation verb", level: .basilica),
-        VocabWord(latin: "specto", english: "I watch", detail: "1st conjugation verb", level: .basilica),
-        VocabWord(latin: "amo", english: "I love", detail: "1st conjugation verb", level: .basilica),
-        VocabWord(latin: "laudo", english: "I praise", detail: "1st conjugation verb", level: .basilica),
-        VocabWord(latin: "ambulo", english: "I walk", detail: "1st conjugation verb", level: .basilica),
-        VocabWord(latin: "voco", english: "I call", detail: "1st conjugation verb", level: .basilica),
+        VocabWord(latin: "portō", english: "I carry", detail: "1st conjugation verb", level: .basilica),
+        VocabWord(latin: "spectō", english: "I watch", detail: "1st conjugation verb", level: .basilica),
+        VocabWord(latin: "amō", english: "I love", detail: "1st conjugation verb", level: .basilica),
+        VocabWord(latin: "laudō", english: "I praise", detail: "1st conjugation verb", level: .basilica),
+        VocabWord(latin: "ambulō", english: "I walk", detail: "1st conjugation verb", level: .basilica),
+        VocabWord(latin: "vocō", english: "I call", detail: "1st conjugation verb", level: .basilica),
         VocabWord(latin: "aqua", english: "water", detail: "f., 1st declension", level: .basilica),
         VocabWord(latin: "via", english: "road", detail: "f., 1st declension", level: .basilica),
         VocabWord(latin: "patria", english: "homeland", detail: "f., 1st declension", level: .basilica),
@@ -140,5 +140,16 @@ enum CiceroCurriculum {
 
     static func randomFact() -> String {
         facts.randomElement() ?? facts[0]
+    }
+
+    /// Spaced-repetition practice set: questions the player has missed come
+    /// first (most-missed at the front), topped up with random review.
+    static func practiceQuestions(missed: [String: Int], count: Int = 5) -> [ConjugationQuestion] {
+        let pool = basilicaQuestions
+        let prioritized = pool
+            .filter { missed[$0.sentence, default: 0] > 0 }
+            .sorted { missed[$0.sentence, default: 0] > missed[$1.sentence, default: 0] }
+        let rest = pool.filter { missed[$0.sentence, default: 0] == 0 }.shuffled()
+        return Array((prioritized + rest).prefix(count))
     }
 }
