@@ -18,21 +18,25 @@ if [ -f "$MARKER" ]; then
   exit 0
 fi
 
-# Clear any partial/corrupt state from earlier runs (this also removes the
-# files that caused 'Distill failed' asset-catalog errors).
-rm -rf "$CATALOG"
 mkdir -p "$CATALOG"
 
-cat > "$CATALOG/Contents.json" <<'EOF'
+if [ ! -f "$CATALOG/Contents.json" ]; then
+  cat > "$CATALOG/Contents.json" <<'EOF'
 {
   "info" : { "author" : "xcode", "version" : 1 }
 }
 EOF
+fi
 
 FAILED=0
 
 fetch_png() { # name url scale(2|3)
   local name="$1" url="$2" scale="$3" dir="$CATALOG/$1.imageset"
+  # Assets committed to the repo (or already downloaded) always win.
+  if [ -f "$dir/Contents.json" ]; then
+    echo "$name already present - skipping"
+    return 0
+  fi
   mkdir -p "$dir"
   local file="$dir/$name@${scale}x.png"
   if ! curl -fsSL --retry 2 -o "$file" "$url"; then
